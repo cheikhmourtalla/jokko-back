@@ -2,7 +2,7 @@
   "name": "jokko-business-back",
   "version": "1.0.0",
   "description": "Backend de Jokko Business - Gestion commerciale SaaS",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "echo 'No build needed'",
