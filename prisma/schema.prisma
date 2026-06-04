@@ -3,11 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-/// Compte super-administrateur de la plateforme
+// ── Super Admin ───────────────────────────────────────────────
 model SuperAdmin {
   id        Int      @id @default(autoincrement())
   name      String
@@ -19,136 +19,110 @@ model SuperAdmin {
   @@map("super_admins")
 }
 
-/// Boutique / tenant (chaque boutique est isolée)
+// ── Shop ─────────────────────────────────────────────────────
 model Shop {
-  id             Int             @id @default(autoincrement())
-  name           String
-  ownerName      String
-  email          String          @unique
-  phone          String?
-  address        String?
-  logoUrl        String?
-  status         ShopStatus      @default(ACTIVE)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  cashRegisters  CashRegister[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  ownerName String
+  email     String   @unique
+  phone     String?
+  address   String?
+  logoUrl   String?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users          User[]
+  products       Product[]
   categories     Category[]
   clients        Client[]
-  invoices       Invoice[]
-  products       Product[]
+  suppliers      Supplier[]
   sales          Sale[]
   stockMovements StockMovement[]
+  cashRegisters  CashRegister[]
   subscriptions  Subscription[]
-  suppliers      Supplier[]
-  users          User[]
 
   @@map("shops")
 }
 
-/// Abonnement d'une boutique
+// ── Subscription ──────────────────────────────────────────────
 model Subscription {
-  id        Int                @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   shopId    Int
-  plan      String             @default("standard")
-  status    SubscriptionStatus @default(ACTIVE)
-  startDate DateTime           @default(now())
+  plan      String   @default("BASIC")
+  status    String   @default("ACTIVE")
+  startDate DateTime @default(now())
   endDate   DateTime
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
-  shop      Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
 
-  @@index([shopId], map: "subscriptions_shopId_fkey")
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
   @@map("subscriptions")
 }
 
-/// Utilisateur d'une boutique
+// ── User ──────────────────────────────────────────────────────
 model User {
-  id             Int             @id @default(autoincrement())
-  shopId         Int
-  name           String
-  email          String          @unique
-  password       String
-  role           UserRole        @default(EMPLOYEE)
-  isActive       Boolean         @default(true)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  cashRegisters  CashRegister[]
-  sales          Sale[]
-  stockMovements StockMovement[]
-  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("EMPLOYEE")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([shopId], map: "users_shopId_fkey")
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  cashRegisters  CashRegister[]
+  stockMovements StockMovement[]
+  sales          Sale[]
+
   @@map("users")
 }
 
+// ── Category ─────────────────────────────────────────────────
 model Category {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   shopId    Int
   name      String
-  createdAt DateTime  @default(now())
-  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  products  Product[]
+  createdAt DateTime @default(now())
 
-  @@unique([shopId, name])
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products Product[]
+
   @@map("categories")
 }
 
-/// Produit vendu dans une boutique
+// ── Product ───────────────────────────────────────────────────
 model Product {
-  id                  Int             @id @default(autoincrement())
+  id                  Int      @id @default(autoincrement())
   shopId              Int
   categoryId          Int?
   name                String
-  description         String?         @db.Text
+  description         String?
   reference           String?
-  quantity            Int             @default(0)
+  quantity            Int      @default(0)
   purchasePrice       Float
-  /// Prix conseillé (modifiable à la vente)
   salePrice           Float
   semiWholesalePrice  Float?
   semiWholesaleMinQty Int?
   wholesalePrice      Float?
   wholesaleMinQty     Int?
-  alertThreshold      Int             @default(5)
+  alertThreshold      Int      @default(5)
   imageUrl            String?
-  isActive            Boolean         @default(true)
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
-  category            Category?       @relation(fields: [categoryId], references: [id])
-  shop                Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  saleItems           SaleItem[]
-  stockMovements      StockMovement[]
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  @@index([categoryId], map: "products_categoryId_fkey")
-  @@index([shopId], map: "products_shopId_fkey")
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  stockMovements StockMovement[]
+  saleItems      SaleItem[]
+
   @@map("products")
 }
 
-/// Mouvement de stock (entrée / sortie / vente / ajustement)
-model StockMovement {
-  id         Int               @id @default(autoincrement())
-  shopId     Int
-  productId  Int
-  userId     Int?
-  supplierId Int?
-  type       StockMovementType
-  quantity   Int
-  /// Coût unitaire à l'entrée (lié fournisseur)
-  unitCost   Float?
-  note       String?
-  createdAt  DateTime          @default(now())
-  product    Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
-  shop       Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  supplier   Supplier?         @relation(fields: [supplierId], references: [id])
-  user       User?             @relation(fields: [userId], references: [id])
-
-  @@index([productId], map: "stock_movements_productId_fkey")
-  @@index([shopId], map: "stock_movements_shopId_fkey")
-  @@index([supplierId], map: "stock_movements_supplierId_fkey")
-  @@index([userId], map: "stock_movements_userId_fkey")
-  @@map("stock_movements")
-}
-
+// ── Client ────────────────────────────────────────────────────
 model Client {
   id        Int      @id @default(autoincrement())
   shopId    Int
@@ -158,235 +132,171 @@ model Client {
   address   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  sales     Sale[]
 
-  @@unique([shopId, phone])
+  shop  Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sales Sale[]
+
   @@map("clients")
 }
 
+// ── Supplier ──────────────────────────────────────────────────
 model Supplier {
-  id             Int             @id @default(autoincrement())
-  shopId         Int
-  name           String
-  phone          String?
-  email          String?
-  address        String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
   stockMovements StockMovement[]
   supplierDebts  SupplierDebt[]
-  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
-  @@index([shopId], map: "suppliers_shopId_fkey")
   @@map("suppliers")
 }
 
-/// Dette envers un fournisseur
+// ── SupplierDebt ──────────────────────────────────────────────
 model SupplierDebt {
-  id          Int                @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   supplierId  Int
   totalAmount Float
-  paidAmount  Float              @default(0)
+  paidAmount  Float    @default(0)
   remaining   Float
-  status      SupplierDebtStatus @default(UNPAID)
+  status      String   @default("UNPAID")
   note        String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  supplier    Supplier           @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  payments    SupplierPayment[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  @@index([supplierId], map: "supplier_debts_supplierId_fkey")
+  supplier Supplier         @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  payments SupplierPayment[]
+
   @@map("supplier_debts")
 }
 
-/// Versement partiel vers un fournisseur
+// ── SupplierPayment ───────────────────────────────────────────
 model SupplierPayment {
-  id             Int          @id @default(autoincrement())
-  supplierDebtId Int
-  amount         Float
-  note           String?
-  paidAt         DateTime     @default(now())
-  supplierDebt   SupplierDebt @relation(fields: [supplierDebtId], references: [id], onDelete: Cascade)
+  id       Int      @id @default(autoincrement())
+  debtId   Int
+  amount   Float
+  note     String?
+  paidAt   DateTime @default(now())
 
-  @@index([supplierDebtId], map: "supplier_payments_supplierDebtId_fkey")
+  debt SupplierDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
   @@map("supplier_payments")
 }
 
-/// Une vente (peut contenir plusieurs articles via SaleItem)
+// ── StockMovement ─────────────────────────────────────────────
+model StockMovement {
+  id         Int      @id @default(autoincrement())
+  shopId     Int
+  productId  Int
+  userId     Int?
+  supplierId Int?
+  type       String
+  quantity   Int
+  unitCost   Float?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@map("stock_movements")
+}
+
+// ── Sale ──────────────────────────────────────────────────────
 model Sale {
-  id            Int           @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   shopId        Int
   userId        Int?
   clientId      Int?
-  invoiceId     Int?          @unique
-  invoiceNumber String?       @unique
-  /// Nom libre si client non enregistré
+  invoiceNumber String?  @unique
   customerName  String?
   totalAmount   Float
-  paidAmount    Float         @default(0)
-  remaining     Float         @default(0)
-  status        SaleStatus    @default(UNPAID)
+  paidAmount    Float    @default(0)
+  remaining     Float    @default(0)
+  status        String   @default("UNPAID")
   note          String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  items         SaleItem[]
-  payments      SalePayment[]
-  client        Client?       @relation(fields: [clientId], references: [id])
-  invoice       Invoice?      @relation(fields: [invoiceId], references: [id])
-  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  user          User?         @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  @@index([clientId], map: "sales_clientId_fkey")
-  @@index([shopId], map: "sales_shopId_fkey")
-  @@index([userId], map: "sales_userId_fkey")
+  shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client   Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items    SaleItem[]
+  payments SalePayment[]
+
   @@map("sales")
 }
 
-/// Ligne d'article dans une vente
-/// Snapshot des infos produit au moment de la vente (nom, prix)
+// ── SaleItem ──────────────────────────────────────────────────
 model SaleItem {
-  id              Int      @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   saleId          Int
-  /// Peut devenir null si produit supprimé
   productId       Int?
-  /// Snapshot du nom au moment de la vente
   productName     String
-  /// Snapshot de l'image
   productImageUrl String?
   quantity        Int
-  /// Prix appliqué (peut différer du prix conseillé)
   unitPrice       Float
   totalAmount     Float
-  product         Product? @relation(fields: [productId], references: [id])
-  sale            Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
-  @@index([productId], map: "sale_items_productId_fkey")
-  @@index([saleId], map: "sale_items_saleId_fkey")
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
   @@map("sale_items")
 }
 
-/// Paiement partiel d'une vente
+// ── SalePayment ───────────────────────────────────────────────
 model SalePayment {
   id     Int      @id @default(autoincrement())
   saleId Int
   amount Float
   note   String?
   paidAt DateTime @default(now())
-  sale   Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
-  @@index([saleId], map: "sale_payments_saleId_fkey")
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
   @@map("sale_payments")
 }
 
-/// Facture liée à une vente
-model Invoice {
-  id            Int           @id @default(autoincrement())
-  shopId        Int
-  invoiceNumber String        @unique
-  format        InvoiceFormat @default(A4)
-  issuedAt      DateTime      @default(now())
-  shop          Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  sale          Sale?
-
-  @@index([shopId], map: "invoices_shopId_fkey")
-  @@map("invoices")
-}
-
-/// Session de caisse journalière
+// ── CashRegister ─────────────────────────────────────────────
 model CashRegister {
-  id            Int                @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   shopId        Int
   userId        Int?
-  openingAmount Float
+  openingAmount Float     @default(0)
+  totalIn       Float     @default(0)
+  totalOut      Float     @default(0)
   closingAmount Float?
-  /// Total encaissements
-  totalIn       Float              @default(0)
-  /// Total décaissements
-  totalOut      Float              @default(0)
-  status        CashRegisterStatus @default(OPEN)
-  openedAt      DateTime           @default(now())
-  closedAt      DateTime?
+  status        String    @default("OPEN")
   note          String?
-  shop          Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  user          User?              @relation(fields: [userId], references: [id])
-  transactions  CashTransaction[]
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
 
-  @@index([shopId], map: "cash_registers_shopId_fkey")
-  @@index([userId], map: "cash_registers_userId_fkey")
+  shop         Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transactions CashTransaction[]
+
   @@map("cash_registers")
 }
 
-/// Transaction dans la caisse (encaissement ou décaissement)
+// ── CashTransaction ───────────────────────────────────────────
 model CashTransaction {
-  id             Int                 @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   cashRegisterId Int
-  type           CashTransactionType
+  type           String
   amount         Float
-  /// Description de l'opération
   label          String
-  /// Ex: ID vente, ID fournisseur
   reference      String?
-  createdAt      DateTime            @default(now())
-  cashRegister   CashRegister        @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
 
-  @@index([cashRegisterId], map: "cash_transactions_cashRegisterId_fkey")
+  cashRegister CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+
   @@map("cash_transactions")
-}
-
-enum ShopStatus {
-  ACTIVE
-  SUSPENDED
-  EXPIRED
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  EXPIRED
-  SUSPENDED
-}
-
-enum UserRole {
-  ADMIN
-  EMPLOYEE
-}
-
-enum StockMovementType {
-  /// Entrée fournisseur
-  ENTRY
-  /// Sortie manuelle (casse, perte...)
-  OUT
-  /// Sortie liée à une vente
-  SALE
-  /// Ajustement d'inventaire
-  ADJUST
-}
-
-enum SupplierDebtStatus {
-  UNPAID
-  PARTIAL
-  PAID
-}
-
-enum SaleStatus {
-  PAID
-  PARTIAL
-  UNPAID
-}
-
-enum InvoiceFormat {
-  A4
-  THERMAL
-}
-
-enum CashRegisterStatus {
-  OPEN
-  CLOSED
-}
-
-enum CashTransactionType {
-  /// Encaissement (vente, paiement client...)
-  IN
-  /// Décaissement (paiement fournisseur, dépense...)
-  OUT
 }

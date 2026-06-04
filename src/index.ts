@@ -25,7 +25,7 @@ import notificationRoutes from "./routes/notification.routes";
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-app.use(cors({origin : "https://lightsalmon-snail-166882.hostingersite.com"}));
+app.use(cors());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev", { stream: morganStream }));
 app.use(express.json());
 
