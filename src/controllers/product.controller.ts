@@ -74,7 +74,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
         description: description || null,
         reference: reference || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        quantity: quantity ?? 0,
+        quantity: 0, // Le stock est géré uniquement par addStockEntry
         purchasePrice: Number(purchasePrice),
         salePrice: Number(salePrice),
         alertThreshold: alertThreshold ?? 5,
@@ -86,20 +86,6 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       },
       include: { category: true },
     });
-
-    // Enregistrer le mouvement de stock initial si quantité > 0
-    if (product.quantity > 0) {
-      await prisma.stockMovement.create({
-        data: {
-          shopId,
-          productId: product.id,
-          userId: req.user!.userId,
-          type: "ENTRY",
-          quantity: product.quantity,
-          note: "Stock initial à la création du produit",
-        },
-      });
-    }
 
     return res.status(201).json({ message: "Produit créé avec succès", product });
   } catch (error) {
