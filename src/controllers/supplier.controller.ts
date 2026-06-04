@@ -190,7 +190,7 @@ export const addSupplierDebt = async (req: AuthRequest, res: Response) => {
       if (paid > 0) {
         await tx.supplierPayment.create({
           data: {
-            supplierDebtId: newDebt.id,
+            debtId: newDebt.id,
             amount: paid,
             note: "Acompte initial",
           },
@@ -272,7 +272,7 @@ export const addSupplierPayment = async (req: AuthRequest, res: Response) => {
     const payment = await prisma.$transaction(async (tx) => {
       const newPayment = await tx.supplierPayment.create({
         data: {
-          supplierDebtId: debtId,
+          debtId: debtId,
           amount: paymentAmount,
           note: note || null,
         },

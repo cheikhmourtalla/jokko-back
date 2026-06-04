@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const super_admin_controller_1 = require("../controllers/super-admin.controller");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const router = (0, express_1.Router)();
+router.get("/shops", auth_middleware_1.protectSuperAdmin, super_admin_controller_1.getShops);
+router.post("/shops", auth_middleware_1.protectSuperAdmin, super_admin_controller_1.createShop);
+router.patch("/shops/:id/status", auth_middleware_1.protectSuperAdmin, super_admin_controller_1.updateShopStatus);
+router.patch("/shops/:id/reset-password", auth_middleware_1.protectSuperAdmin, super_admin_controller_1.resetShopPassword);
+router.delete("/shops/:id", auth_middleware_1.protectSuperAdmin, super_admin_controller_1.deleteShop);
+exports.default = router;

@@ -87,7 +87,7 @@ export const addStockEntry = async (req: AuthRequest, res: Response) => {
         if (paid > 0) {
           await tx.supplierPayment.create({
             data: {
-              supplierDebtId: debt.id,
+              debtId: debt.id,
               amount: paid,
               note: "Acompte à la livraison",
             },

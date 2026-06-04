@@ -14,6 +14,7 @@ function getSaleStatus(paid: number, total: number) {
 async function generateInvoiceNumber(shopId: number): Promise<string> {
   const year = new Date().getFullYear();
 
+  // Compter toutes les ventes de ce shop cette année
   const startOfYear = new Date(year, 0, 1);
   const endOfYear   = new Date(year + 1, 0, 1);
 
@@ -25,6 +26,7 @@ async function generateInvoiceNumber(shopId: number): Promise<string> {
     },
   });
 
+  // Boucle anti-collision : essaie jusqu'à trouver un numéro libre
   let attempt = 0;
   while (attempt < 20) {
     const seq = String(countThisYear + 1 + attempt).padStart(5, "0");
@@ -39,6 +41,7 @@ async function generateInvoiceNumber(shopId: number): Promise<string> {
     attempt++;
   }
 
+  // Dernier recours absolu — ne peut jamais collisionner
   return `FAC-${year}-${Date.now()}`;
 }
 
@@ -135,7 +138,6 @@ export const getSaleById = async (req: AuthRequest, res: Response) => {
         client: true,
         items: { include: { product: true } },
         payments: true,
-        invoice: true,
       },
     });
     if (!sale) return res.status(404).json({ message: "Vente introuvable" });
@@ -159,6 +161,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Client ou nom du client requis" });
     }
 
+    // Vérifier les stocks
     const productIds = items.map((i: any) => Number(i.productId));
     const products = await prisma.product.findMany({
       where: { id: { in: productIds }, shopId, isActive: true },
@@ -189,6 +192,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Montant payé invalide" });
     }
 
+    // ✅ Vérifier que la caisse est ouverte
     const cashRegister = await prisma.cashRegister.findFirst({
       where: { shopId, status: "OPEN" },
     });
@@ -267,6 +271,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
 
     logger.info(`🛒 Vente créée — ${invoiceNumber} — Total: ${totalAmount} FCFA — Payé: ${paid} FCFA — Shop: ${shopId}`);
 
+    // Vérifier si des produits sont passés en stock faible ou rupture après la vente
     try {
       const updatedProducts = await prisma.product.findMany({
         where: { id: { in: productIds }, shopId },
@@ -289,6 +294,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       }
     } catch { /* silencieux */ }
 
+    // ✅ Encaissement automatique en caisse
     if (paid > 0) {
       const clientLabel = sale.client?.name || sale.customerName || "Client";
       await recordCashIn(
@@ -308,7 +314,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
 
 // ── PATCH /sales/:id/payment ──────────────────────────────────
 export const addSalePayment = async (req: AuthRequest, res: Response) => {
-  const saleId = Number(req.params.id); // ✅ déclaré avant le try
+  const saleId = Number(req.params.id);
   try {
     const shopId = req.user!.shopId;
     const { amount, note } = req.body;
@@ -344,6 +350,7 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
       });
     });
 
+    // ✅ Encaissement en caisse
     await recordCashIn(
       shopId,
       paymentAmount,
@@ -354,14 +361,14 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
     logger.info(`💰 Paiement ajouté — Vente #${saleId} — Montant: ${paymentAmount} FCFA — Shop: ${shopId}`);
     return res.status(200).json({ message: "Paiement ajouté avec succès", sale: updatedSale });
   } catch (error) {
-    logger.error("Erreur ajout paiement", { saleId, error }); // ✅ saleId accessible
+    logger.error("Erreur ajout paiement", { saleId, error });
     return res.status(500).json({ message: "Erreur ajout paiement", error });
   }
 };
 
 // ── DELETE /sales/:id ─────────────────────────────────────────
 export const deleteSale = async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id); // ✅ déclaré avant le try
+  const id = Number(req.params.id);
   try {
     const shopId = req.user!.shopId;
 
@@ -392,6 +399,7 @@ export const deleteSale = async (req: AuthRequest, res: Response) => {
       await tx.sale.delete({ where: { id } });
     });
 
+    // ✅ Décaissement correctif si montant déjà encaissé
     if (sale.paidAmount > 0) {
       await recordCashOut(
         shopId,
@@ -404,7 +412,7 @@ export const deleteSale = async (req: AuthRequest, res: Response) => {
     logger.warn(`🗑️ Vente annulée — ID: ${id} — Shop: ${shopId}`);
     return res.status(200).json({ message: "Vente annulée et stock restauré" });
   } catch (error) {
-    logger.error("Erreur suppression vente", { id, error }); // ✅ id accessible
+    logger.error("Erreur suppression vente", { id, error });
     return res.status(500).json({ message: "Erreur suppression vente", error });
   }
 };
