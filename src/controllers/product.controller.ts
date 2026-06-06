@@ -74,7 +74,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
         description: description || null,
         reference: reference || null,
         categoryId: categoryId ? Number(categoryId) : null,
-        quantity: 0, // Le stock est géré uniquement par addStockEntry
+        quantity: 0, // TOUJOURS 0 — le stock est géré uniquement par addStockEntry
         purchasePrice: Number(purchasePrice),
         salePrice: Number(salePrice),
         alertThreshold: alertThreshold ?? 5,
