@@ -32,7 +32,7 @@ app.use(cors({
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev", { stream: morganStream }));
 app.use(express.json());
 
-// Helmet sans bloquer les images
+
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
