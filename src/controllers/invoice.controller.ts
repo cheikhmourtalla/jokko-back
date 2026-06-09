@@ -3,7 +3,7 @@ import { prisma } from "../config/prisma";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 // Helper encaissement caisse
-async function recordCashIn(shopId: number, amount: number, label: string, reference: string) {
+async function recordCashIn(shopId: number, amount: number, label: string, reference: string, paymentMethod = "CASH") {
   if (amount <= 0) return;
   const cashRegister = await prisma.cashRegister.findFirst({
     where: { shopId, status: "OPEN" },
@@ -11,7 +11,7 @@ async function recordCashIn(shopId: number, amount: number, label: string, refer
   if (!cashRegister) return;
   await prisma.$transaction([
     prisma.cashTransaction.create({
-      data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference },
+      data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference, paymentMethod },
     }),
     prisma.cashRegister.update({
       where: { id: cashRegister.id },
@@ -121,7 +121,7 @@ export const addInvoicePayment = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
     const saleId = Number(req.params.id);
-    const { amount, note } = req.body;
+    const { amount, note, paymentMethod } = req.body;
 
     const paymentAmount = Number(amount);
     if (!paymentAmount || paymentAmount <= 0) {
@@ -156,7 +156,7 @@ export const addInvoicePayment = async (req: AuthRequest, res: Response) => {
 
     const updatedSale = await prisma.$transaction(async (tx) => {
       await tx.salePayment.create({
-        data: { saleId, amount: paymentAmount, note: note || null },
+        data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: paymentMethod || "CASH" },
       });
       return tx.sale.update({
         where: { id: saleId },
@@ -175,7 +175,8 @@ export const addInvoicePayment = async (req: AuthRequest, res: Response) => {
       shopId,
       paymentAmount,
       `Règlement facture ${sale.invoiceNumber} — ${clientLabel}`,
-      sale.invoiceNumber || String(saleId)
+      sale.invoiceNumber || String(saleId),
+      paymentMethod || "CASH"
     );
 
     return res.status(200).json({

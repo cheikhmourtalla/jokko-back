@@ -153,6 +153,7 @@ export const addSupplierDebt = async (req: AuthRequest, res: Response) => {
 
     const total = Number(totalAmount);
     const paid = paidAmount ? Number(paidAmount) : 0;
+    const paymentMethod = req.body.paymentMethod || "CASH";
 
     if (paid > total) {
       return res.status(400).json({ message: "L'acompte ne peut pas dépasser le total" });

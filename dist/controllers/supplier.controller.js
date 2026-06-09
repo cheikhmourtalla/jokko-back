@@ -147,6 +147,7 @@ const addSupplierDebt = async (req, res) => {
             return res.status(404).json({ message: "Fournisseur introuvable" });
         const total = Number(totalAmount);
         const paid = paidAmount ? Number(paidAmount) : 0;
+        const paymentMethod = req.body.paymentMethod || "CASH";
         if (paid > total) {
             return res.status(400).json({ message: "L'acompte ne peut pas dépasser le total" });
         }

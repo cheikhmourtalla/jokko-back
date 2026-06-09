@@ -46,7 +46,7 @@ async function generateInvoiceNumber(shopId: number): Promise<string> {
 }
 
 // ── Encaissement automatique en caisse ───────────────────────
-async function recordCashIn(shopId: number, amount: number, label: string, reference: string) {
+async function recordCashIn(shopId: number, amount: number, label: string, reference: string, paymentMethod = "CASH") {
   if (amount <= 0) return;
   const cashRegister = await prisma.cashRegister.findFirst({
     where: { shopId, status: "OPEN" },
@@ -54,7 +54,7 @@ async function recordCashIn(shopId: number, amount: number, label: string, refer
   if (!cashRegister) return;
   await prisma.$transaction([
     prisma.cashTransaction.create({
-      data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference },
+      data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference, paymentMethod },
     }),
     prisma.cashRegister.update({
       where: { id: cashRegister.id },
@@ -64,7 +64,7 @@ async function recordCashIn(shopId: number, amount: number, label: string, refer
 }
 
 // ── Décaissement correctif en caisse ─────────────────────────
-async function recordCashOut(shopId: number, amount: number, label: string, reference: string) {
+async function recordCashOut(shopId: number, amount: number, label: string, reference: string, paymentMethod = "CASH") {
   if (amount <= 0) return;
   const cashRegister = await prisma.cashRegister.findFirst({
     where: { shopId, status: "OPEN" },
@@ -72,7 +72,7 @@ async function recordCashOut(shopId: number, amount: number, label: string, refe
   if (!cashRegister) return;
   await prisma.$transaction([
     prisma.cashTransaction.create({
-      data: { cashRegisterId: cashRegister.id, type: "OUT", amount, label, reference },
+      data: { cashRegisterId: cashRegister.id, type: "OUT", amount, label, reference, paymentMethod },
     }),
     prisma.cashRegister.update({
       where: { id: cashRegister.id },
@@ -152,7 +152,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
     const userId = req.user!.userId;
-    const { clientId, customerName, paidAmount, note, items } = req.body;
+    const { clientId, customerName, paidAmount, note, items, paymentMethod } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Au moins un article est requis" });
@@ -244,7 +244,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
 
       if (paid > 0) {
         await tx.salePayment.create({
-          data: { saleId: newSale.id, amount: paid, note: "Paiement initial" },
+          data: { saleId: newSale.id, amount: paid, note: "Paiement initial", paymentMethod: paymentMethod || "CASH" },
         });
       }
 
@@ -317,7 +317,7 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
   const saleId = Number(req.params.id);
   try {
     const shopId = req.user!.shopId;
-    const { amount, note } = req.body;
+    const { amount, note, paymentMethod } = req.body;
 
     const paymentAmount = Number(amount);
     if (!paymentAmount || paymentAmount <= 0) {
@@ -341,7 +341,7 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
 
     const updatedSale = await prisma.$transaction(async (tx) => {
       await tx.salePayment.create({
-        data: { saleId, amount: paymentAmount, note: note || null },
+        data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: paymentMethod || "CASH" },
       });
       return tx.sale.update({
         where: { id: saleId },

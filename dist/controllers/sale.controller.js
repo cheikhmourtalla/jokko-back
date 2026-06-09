@@ -41,7 +41,7 @@ async function generateInvoiceNumber(shopId) {
     return `FAC-${year}-${Date.now()}`;
 }
 // ── Encaissement automatique en caisse ───────────────────────
-async function recordCashIn(shopId, amount, label, reference) {
+async function recordCashIn(shopId, amount, label, reference, paymentMethod = "CASH") {
     if (amount <= 0)
         return;
     const cashRegister = await prisma_1.prisma.cashRegister.findFirst({
@@ -51,7 +51,7 @@ async function recordCashIn(shopId, amount, label, reference) {
         return;
     await prisma_1.prisma.$transaction([
         prisma_1.prisma.cashTransaction.create({
-            data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference },
+            data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference, paymentMethod },
         }),
         prisma_1.prisma.cashRegister.update({
             where: { id: cashRegister.id },
@@ -60,7 +60,7 @@ async function recordCashIn(shopId, amount, label, reference) {
     ]);
 }
 // ── Décaissement correctif en caisse ─────────────────────────
-async function recordCashOut(shopId, amount, label, reference) {
+async function recordCashOut(shopId, amount, label, reference, paymentMethod = "CASH") {
     if (amount <= 0)
         return;
     const cashRegister = await prisma_1.prisma.cashRegister.findFirst({
@@ -70,7 +70,7 @@ async function recordCashOut(shopId, amount, label, reference) {
         return;
     await prisma_1.prisma.$transaction([
         prisma_1.prisma.cashTransaction.create({
-            data: { cashRegisterId: cashRegister.id, type: "OUT", amount, label, reference },
+            data: { cashRegisterId: cashRegister.id, type: "OUT", amount, label, reference, paymentMethod },
         }),
         prisma_1.prisma.cashRegister.update({
             where: { id: cashRegister.id },
@@ -151,7 +151,7 @@ const createSale = async (req, res) => {
     try {
         const shopId = req.user.shopId;
         const userId = req.user.userId;
-        const { clientId, customerName, paidAmount, note, items } = req.body;
+        const { clientId, customerName, paidAmount, note, items, paymentMethod } = req.body;
         if (!items || !Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ message: "Au moins un article est requis" });
         }
@@ -230,7 +230,7 @@ const createSale = async (req, res) => {
             });
             if (paid > 0) {
                 await tx.salePayment.create({
-                    data: { saleId: newSale.id, amount: paid, note: "Paiement initial" },
+                    data: { saleId: newSale.id, amount: paid, note: "Paiement initial", paymentMethod: paymentMethod || "CASH" },
                 });
             }
             for (const item of items) {
@@ -290,7 +290,7 @@ const addSalePayment = async (req, res) => {
     const saleId = Number(req.params.id);
     try {
         const shopId = req.user.shopId;
-        const { amount, note } = req.body;
+        const { amount, note, paymentMethod } = req.body;
         const paymentAmount = Number(amount);
         if (!paymentAmount || paymentAmount <= 0) {
             return res.status(400).json({ message: "Montant invalide" });
@@ -311,7 +311,7 @@ const addSalePayment = async (req, res) => {
         const newStatus = getSaleStatus(newPaid, sale.totalAmount);
         const updatedSale = await prisma_1.prisma.$transaction(async (tx) => {
             await tx.salePayment.create({
-                data: { saleId, amount: paymentAmount, note: note || null },
+                data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: paymentMethod || "CASH" },
             });
             return tx.sale.update({
                 where: { id: saleId },

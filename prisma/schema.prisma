@@ -177,11 +177,12 @@ model SupplierDebt {
 
 // ── SupplierPayment ───────────────────────────────────────────
 model SupplierPayment {
-  id       Int      @id @default(autoincrement())
-  debtId   Int
-  amount   Float
-  note     String?
-  paidAt   DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  debtId        Int
+  amount        Float
+  note          String?
+  paymentMethod String   @default("CASH")
+  paidAt        DateTime @default(now())
 
   debt SupplierDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
 
@@ -253,11 +254,12 @@ model SaleItem {
 
 // ── SalePayment ───────────────────────────────────────────────
 model SalePayment {
-  id     Int      @id @default(autoincrement())
-  saleId Int
-  amount Float
-  note   String?
-  paidAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  saleId        Int
+  amount        Float
+  note          String?
+  paymentMethod String   @default("CASH")
+  paidAt        DateTime @default(now())
 
   sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
@@ -294,6 +296,7 @@ model CashTransaction {
   amount         Float
   label          String
   reference      String?
+  paymentMethod  String   @default("CASH")
   createdAt      DateTime @default(now())
 
   cashRegister CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)

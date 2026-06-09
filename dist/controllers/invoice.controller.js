@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.addInvoicePayment = exports.getInvoiceById = exports.getInvoices = void 0;
 const prisma_1 = require("../config/prisma");
 // Helper encaissement caisse
-async function recordCashIn(shopId, amount, label, reference) {
+async function recordCashIn(shopId, amount, label, reference, paymentMethod = "CASH") {
     if (amount <= 0)
         return;
     const cashRegister = await prisma_1.prisma.cashRegister.findFirst({
@@ -13,7 +13,7 @@ async function recordCashIn(shopId, amount, label, reference) {
         return;
     await prisma_1.prisma.$transaction([
         prisma_1.prisma.cashTransaction.create({
-            data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference },
+            data: { cashRegisterId: cashRegister.id, type: "IN", amount, label, reference, paymentMethod },
         }),
         prisma_1.prisma.cashRegister.update({
             where: { id: cashRegister.id },
@@ -118,7 +118,7 @@ const addInvoicePayment = async (req, res) => {
     try {
         const shopId = req.user.shopId;
         const saleId = Number(req.params.id);
-        const { amount, note } = req.body;
+        const { amount, note, paymentMethod } = req.body;
         const paymentAmount = Number(amount);
         if (!paymentAmount || paymentAmount <= 0) {
             return res.status(400).json({ message: "Montant invalide" });
@@ -149,7 +149,7 @@ const addInvoicePayment = async (req, res) => {
         }
         const updatedSale = await prisma_1.prisma.$transaction(async (tx) => {
             await tx.salePayment.create({
-                data: { saleId, amount: paymentAmount, note: note || null },
+                data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: paymentMethod || "CASH" },
             });
             return tx.sale.update({
                 where: { id: saleId },
@@ -163,7 +163,7 @@ const addInvoicePayment = async (req, res) => {
         });
         // ✅ Encaissement automatique en caisse
         const clientLabel = updatedSale.client?.name || updatedSale.customerName || "Client";
-        await recordCashIn(shopId, paymentAmount, `Règlement facture ${sale.invoiceNumber} — ${clientLabel}`, sale.invoiceNumber || String(saleId));
+        await recordCashIn(shopId, paymentAmount, `Règlement facture ${sale.invoiceNumber} — ${clientLabel}`, sale.invoiceNumber || String(saleId), paymentMethod || "CASH");
         return res.status(200).json({
             message: "Paiement enregistré sur la facture",
             invoice: updatedSale,

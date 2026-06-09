@@ -27,7 +27,10 @@ const shop_routes_1 = __importDefault(require("./routes/shop.routes"));
 const notification_routes_1 = __importDefault(require("./routes/notification.routes"));
 const app = (0, express_1.default)();
 const PORT = Number(process.env.PORT) || 5000;
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: process.env.FRONTEND_URL || "*",
+    credentials: true,
+}));
 app.use((0, morgan_1.default)(process.env.NODE_ENV === "production" ? "combined" : "dev", { stream: logger_1.morganStream }));
 app.use(express_1.default.json());
 // Helmet sans bloquer les images

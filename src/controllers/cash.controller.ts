@@ -67,6 +67,32 @@ export const closeCash = async (req: AuthRequest, res: Response) => {
       },
     });
 
+    // Résumé par mode de paiement
+    const methodLabels: Record<string, string> = {
+      CASH: "💵 Espèces",
+      WAVE: "🔵 Wave",
+      ORANGE_MONEY: "🟠 Orange Money",
+      FREE_MONEY: "🟣 Free Money",
+      BANK: "🏦 Virement bancaire",
+      OTHER: "📱 Autre",
+    };
+
+    const byMethod: Record<string, { in: number; out: number }> = {};
+    for (const tx of closed.transactions) {
+      const m = tx.paymentMethod || "CASH";
+      if (!byMethod[m]) byMethod[m] = { in: 0, out: 0 };
+      if (tx.type === "IN") byMethod[m].in += tx.amount;
+      else byMethod[m].out += tx.amount;
+    }
+
+    const paymentMethodSummary = Object.entries(byMethod).map(([method, amounts]) => ({
+      method,
+      label: methodLabels[method] || method,
+      totalIn: amounts.in,
+      totalOut: amounts.out,
+      net: amounts.in - amounts.out,
+    }));
+
     // Résumé de la journée
     const summary = {
       date: new Date().toLocaleDateString("fr-FR"),
@@ -78,6 +104,7 @@ export const closeCash = async (req: AuthRequest, res: Response) => {
       closingAmount,
       transactionCount: cashRegister.transactions.length,
       openedBy: closed.user?.name || "Inconnu",
+      paymentMethodSummary,
     };
 
     logger.info(`🔴 Caisse fermée — Shop: ${shopId} — Clôture: ${closingAmount} FCFA — Entrées: ${cashRegister.totalIn} FCFA — Sorties: ${cashRegister.totalOut} FCFA`);
@@ -195,7 +222,7 @@ export const getCashById = async (req: AuthRequest, res: Response) => {
 export const addTransaction = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
-    const { type, amount, label, reference } = req.body;
+    const { type, amount, label, reference, paymentMethod } = req.body;
 
     if (!type || !amount || !label) {
       return res.status(400).json({ message: "Type, montant et libellé sont obligatoires" });
@@ -203,6 +230,8 @@ export const addTransaction = async (req: AuthRequest, res: Response) => {
     if (!["IN", "OUT"].includes(type)) {
       return res.status(400).json({ message: "Type doit être IN ou OUT" });
     }
+    const validMethods = ["CASH", "WAVE", "ORANGE_MONEY", "FREE_MONEY", "BANK", "OTHER"];
+    const method = validMethods.includes(paymentMethod) ? paymentMethod : "CASH";
 
     const cashRegister = await prisma.cashRegister.findFirst({
       where: { shopId, status: "OPEN" },
@@ -223,6 +252,7 @@ export const addTransaction = async (req: AuthRequest, res: Response) => {
           amount: amountNum,
           label,
           reference: reference || null,
+          paymentMethod: method,
         },
       }),
       prisma.cashRegister.update({
