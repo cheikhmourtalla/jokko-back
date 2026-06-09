@@ -8,7 +8,6 @@ const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
 const morgan_1 = __importDefault(require("morgan"));
-const path_1 = __importDefault(require("path"));
 const logger_1 = require("./config/logger");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const super_admin_routes_1 = __importDefault(require("./routes/super-admin.routes"));
@@ -37,8 +36,6 @@ app.use(express_1.default.json());
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
-// ── Servir les fichiers uploadés statiquement ────────────────
-app.use("/uploads", express_1.default.static(path_1.default.join(process.cwd(), "uploads")));
 app.get("/", (_req, res) => {
     res.json({ message: "Jokko Business API v1.0", status: "running" });
 });

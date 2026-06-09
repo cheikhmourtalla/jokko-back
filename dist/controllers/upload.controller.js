@@ -5,26 +5,19 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteProductImage = exports.uploadProductImage = exports.upload = void 0;
 const multer_1 = __importDefault(require("multer"));
-const path_1 = __importDefault(require("path"));
-const fs_1 = __importDefault(require("fs"));
-// Dossier uploads
-const uploadDir = path_1.default.join(process.cwd(), "uploads", "products");
-if (!fs_1.default.existsSync(uploadDir)) {
-    fs_1.default.mkdirSync(uploadDir, { recursive: true });
-}
-// Config multer
-const storage = multer_1.default.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadDir),
-    filename: (_req, file, cb) => {
-        const ext = path_1.default.extname(file.originalname).toLowerCase();
-        const name = `product_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
-        cb(null, name);
-    },
+const cloudinary_1 = require("cloudinary");
+const streamifier_1 = __importDefault(require("streamifier"));
+// Config Cloudinary depuis les variables d'environnement
+cloudinary_1.v2.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+// Multer en mémoire (pas de disque)
+const storage = multer_1.default.memoryStorage();
 const fileFilter = (_req, file, cb) => {
-    const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
-    const ext = path_1.default.extname(file.originalname).toLowerCase();
-    if (allowed.includes(ext)) {
+    const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (allowed.includes(file.mimetype)) {
         cb(null, true);
     }
     else {
@@ -34,34 +27,44 @@ const fileFilter = (_req, file, cb) => {
 exports.upload = (0, multer_1.default)({
     storage,
     fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
-// ── POST /upload/product-image ────────────────────────────────
-const uploadProductImage = (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: "Aucun fichier reçu" });
-    }
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
-    const imageUrl = `${baseUrl}/uploads/products/${req.file.filename}`;
-    return res.status(200).json({
-        message: "Image uploadée avec succès",
-        imageUrl,
-        filename: req.file.filename,
+// Helper upload vers Cloudinary
+const uploadToCloudinary = (buffer, folder) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary_1.v2.uploader.upload_stream({ folder, resource_type: "image" }, (error, result) => {
+            if (error || !result)
+                return reject(error);
+            resolve(result.secure_url);
+        });
+        streamifier_1.default.createReadStream(buffer).pipe(stream);
     });
 };
+// ── POST /upload/product-image ────────────────────────────────
+const uploadProductImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "Aucun fichier reçu" });
+        }
+        const imageUrl = await uploadToCloudinary(req.file.buffer, "jokko-business/products");
+        return res.status(200).json({ message: "Image uploadée avec succès", imageUrl });
+    }
+    catch (error) {
+        return res.status(500).json({ message: "Erreur upload image", error });
+    }
+};
 exports.uploadProductImage = uploadProductImage;
-// ── DELETE /upload/product-image/:filename ────────────────────
-const deleteProductImage = (req, res) => {
-    const { filename } = req.params;
-    // Sécurité : pas de path traversal
-    if (filename.includes("/") || filename.includes("..")) {
-        return res.status(400).json({ message: "Nom de fichier invalide" });
+// ── DELETE /upload/product-image ──────────────────────────────
+const deleteProductImage = async (req, res) => {
+    try {
+        const { publicId } = req.body;
+        if (!publicId)
+            return res.status(400).json({ message: "Public ID manquant" });
+        await cloudinary_1.v2.uploader.destroy(publicId);
+        return res.status(200).json({ message: "Image supprimée" });
     }
-    const filePath = path_1.default.join(uploadDir, filename);
-    if (!fs_1.default.existsSync(filePath)) {
-        return res.status(404).json({ message: "Fichier introuvable" });
+    catch (error) {
+        return res.status(500).json({ message: "Erreur suppression image", error });
     }
-    fs_1.default.unlinkSync(filePath);
-    return res.status(200).json({ message: "Image supprimée" });
 };
 exports.deleteProductImage = deleteProductImage;
