@@ -37,6 +37,9 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 
+// ── Servir les fichiers uploadés statiquement ────────────────
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 app.get("/", (_req: Request, res: Response) => {
   res.json({ message: "Jokko Business API v1.0", status: "running" });
 });

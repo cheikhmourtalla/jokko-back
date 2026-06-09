@@ -1,22 +1,28 @@
 import { Request, Response } from "express";
 import multer from "multer";
-import { v2 as cloudinary } from "cloudinary";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import streamifier from "streamifier";
+import path from "path";
+import fs from "fs";
 
-// Config Cloudinary depuis les variables d'environnement
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+// Dossier uploads
+const uploadDir = path.join(process.cwd(), "uploads", "products");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Config multer
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const name = `product_${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
+    cb(null, name);
+  },
 });
 
-// Multer en mémoire (pas de disque)
-const storage = multer.memoryStorage();
-
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-  if (allowed.includes(file.mimetype)) {
+  const allowed = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (allowed.includes(ext)) {
     cb(null, true);
   } else {
     cb(new Error("Format non supporté. Utilisez JPG, PNG ou WebP."));
@@ -26,44 +32,40 @@ const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFil
 export const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 });
 
-// Helper upload vers Cloudinary
-const uploadToCloudinary = (buffer: Buffer, folder: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
-      (error, result) => {
-        if (error || !result) return reject(error);
-        resolve(result.secure_url);
-      }
-    );
-    streamifier.createReadStream(buffer).pipe(stream);
+// ── POST /upload/product-image ────────────────────────────────
+export const uploadProductImage = (req: Request, res: Response) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "Aucun fichier reçu" });
+  }
+
+  const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const imageUrl = `${baseUrl}/uploads/products/${req.file.filename}`;
+
+  return res.status(200).json({
+    message: "Image uploadée avec succès",
+    imageUrl,
+    filename: req.file.filename,
   });
 };
 
-// ── POST /upload/product-image ────────────────────────────────
-export const uploadProductImage = async (req: AuthRequest, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ message: "Aucun fichier reçu" });
-    }
-    const imageUrl = await uploadToCloudinary(req.file.buffer, "jokko-business/products");
-    return res.status(200).json({ message: "Image uploadée avec succès", imageUrl });
-  } catch (error) {
-    return res.status(500).json({ message: "Erreur upload image", error });
-  }
-};
+// ── DELETE /upload/product-image/:filename ────────────────────
+export const deleteProductImage = (req: Request, res: Response) => {
+  const { filename } = req.params;
 
-// ── DELETE /upload/product-image ──────────────────────────────
-export const deleteProductImage = async (req: AuthRequest, res: Response) => {
-  try {
-    const { publicId } = req.body;
-    if (!publicId) return res.status(400).json({ message: "Public ID manquant" });
-    await cloudinary.uploader.destroy(publicId);
-    return res.status(200).json({ message: "Image supprimée" });
-  } catch (error) {
-    return res.status(500).json({ message: "Erreur suppression image", error });
+  // Sécurité : pas de path traversal
+  if (filename.includes("/") || filename.includes("..")) {
+    return res.status(400).json({ message: "Nom de fichier invalide" });
   }
+
+  const filePath = path.join(uploadDir, filename);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "Fichier introuvable" });
+  }
+
+  fs.unlinkSync(filePath);
+  return res.status(200).json({ message: "Image supprimée" });
 };
