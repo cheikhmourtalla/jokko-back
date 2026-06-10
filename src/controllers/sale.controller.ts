@@ -13,8 +13,6 @@ function getSaleStatus(paid: number, total: number) {
 
 async function generateInvoiceNumber(shopId: number): Promise<string> {
   const year = new Date().getFullYear();
-
-  // Compter toutes les ventes de ce shop cette année
   const startOfYear = new Date(year, 0, 1);
   const endOfYear   = new Date(year + 1, 0, 1);
 
@@ -26,22 +24,18 @@ async function generateInvoiceNumber(shopId: number): Promise<string> {
     },
   });
 
-  // Boucle anti-collision : essaie jusqu'à trouver un numéro libre
   let attempt = 0;
   while (attempt < 20) {
     const seq = String(countThisYear + 1 + attempt).padStart(5, "0");
     const candidate = `FAC-${year}-${seq}`;
-
     const existing = await prisma.sale.findFirst({
       where: { invoiceNumber: candidate },
       select: { id: true },
     });
-
     if (!existing) return candidate;
     attempt++;
   }
 
-  // Dernier recours absolu — ne peut jamais collisionner
   return `FAC-${year}-${Date.now()}`;
 }
 
@@ -161,7 +155,6 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Client ou nom du client requis" });
     }
 
-    // Vérifier les stocks
     const productIds = items.map((i: any) => Number(i.productId));
     const products = await prisma.product.findMany({
       where: { id: { in: productIds }, shopId, isActive: true },
@@ -192,7 +185,6 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ message: "Montant payé invalide" });
     }
 
-    // ✅ Vérifier que la caisse est ouverte
     const cashRegister = await prisma.cashRegister.findFirst({
       where: { shopId, status: "OPEN" },
     });
@@ -207,6 +199,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
     const remaining = totalAmount - paid;
     const status = getSaleStatus(paid, totalAmount);
     const invoiceNumber = await generateInvoiceNumber(shopId);
+    const method = paymentMethod || "CASH";
 
     const sale = await prisma.$transaction(async (tx) => {
       const newSale = await tx.sale.create({
@@ -244,7 +237,7 @@ export const createSale = async (req: AuthRequest, res: Response) => {
 
       if (paid > 0) {
         await tx.salePayment.create({
-          data: { saleId: newSale.id, amount: paid, note: "Paiement initial", paymentMethod: paymentMethod || "CASH" },
+          data: { saleId: newSale.id, amount: paid, note: "Paiement initial", paymentMethod: method },
         });
       }
 
@@ -271,16 +264,14 @@ export const createSale = async (req: AuthRequest, res: Response) => {
 
     logger.info(`🛒 Vente créée — ${invoiceNumber} — Total: ${totalAmount} FCFA — Payé: ${paid} FCFA — Shop: ${shopId}`);
 
-    // Vérifier si des produits sont passés en stock faible ou rupture après la vente
+    // Vérifier stock faible après vente
     try {
       const updatedProducts = await prisma.product.findMany({
         where: { id: { in: productIds }, shopId },
         select: { id: true, name: true, quantity: true, alertThreshold: true },
       });
 
-      const lowStock = updatedProducts.filter(
-        (p) => p.quantity > 0 && p.quantity <= p.alertThreshold
-      );
+      const lowStock = updatedProducts.filter((p) => p.quantity > 0 && p.quantity <= p.alertThreshold);
       const outOfStock = updatedProducts.filter((p) => p.quantity === 0);
 
       if (lowStock.length > 0 || outOfStock.length > 0) {
@@ -294,14 +285,15 @@ export const createSale = async (req: AuthRequest, res: Response) => {
       }
     } catch { /* silencieux */ }
 
-    // ✅ Encaissement automatique en caisse
+    // ✅ Encaissement en caisse avec le bon mode de paiement
     if (paid > 0) {
       const clientLabel = sale.client?.name || sale.customerName || "Client";
       await recordCashIn(
         shopId,
         paid,
         `Vente ${invoiceNumber} — ${clientLabel}`,
-        invoiceNumber
+        invoiceNumber,
+        method
       );
     }
 
@@ -338,10 +330,11 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
     const newPaid = sale.paidAmount + paymentAmount;
     const newRemaining = sale.remaining - paymentAmount;
     const newStatus = getSaleStatus(newPaid, sale.totalAmount);
+    const method = paymentMethod || "CASH";
 
     const updatedSale = await prisma.$transaction(async (tx) => {
       await tx.salePayment.create({
-        data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: paymentMethod || "CASH" },
+        data: { saleId, amount: paymentAmount, note: note || null, paymentMethod: method },
       });
       return tx.sale.update({
         where: { id: saleId },
@@ -350,12 +343,13 @@ export const addSalePayment = async (req: AuthRequest, res: Response) => {
       });
     });
 
-    // ✅ Encaissement en caisse
+    // ✅ Encaissement en caisse avec le bon mode de paiement
     await recordCashIn(
       shopId,
       paymentAmount,
       `Règlement facture ${sale.invoiceNumber || `#${saleId}`}`,
-      sale.invoiceNumber || String(saleId)
+      sale.invoiceNumber || String(saleId),
+      method
     );
 
     logger.info(`💰 Paiement ajouté — Vente #${saleId} — Montant: ${paymentAmount} FCFA — Shop: ${shopId}`);
@@ -399,7 +393,6 @@ export const deleteSale = async (req: AuthRequest, res: Response) => {
       await tx.sale.delete({ where: { id } });
     });
 
-    // ✅ Décaissement correctif si montant déjà encaissé
     if (sale.paidAmount > 0) {
       await recordCashOut(
         shopId,
