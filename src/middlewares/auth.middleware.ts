@@ -1,7 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env-config.js";
+import { logger } from "../config/logger.js";
 import { PlanType } from "../database/prisma/generated/prisma/enums.js";
+import { UnauthorizedError } from "../utils/errors.js";
 
 export interface AuthRequest extends Request {
   user?: {
@@ -80,7 +82,9 @@ export const protectSuperAdmin = (
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "Accès non autorisé" });
+      throw new UnauthorizedError("Forbidenn");
+
+      // return res.status(401).json({ message: "Accès non autorisé" });
     }
 
     const token = authHeader.split(" ")[1];
@@ -93,14 +97,14 @@ export const protectSuperAdmin = (
     };
 
     if (decoded.role !== "SUPER_ADMIN") {
-      return res
-        .status(403)
-        .json({ message: "Réservé au super administrateur" });
+      console.log(decoded.role)
+      throw new UnauthorizedError("Forbidenn");
     }
 
     req.user = { ...decoded, shopId: 0 };
     next();
-  } catch {
-    return res.status(401).json({ message: "Token invalide ou expiré" });
+  } catch (e) {
+    logger.warn("Attemp to login as admin failed");
+    throw e
   }
 };

@@ -1,8 +1,8 @@
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
-import { logger } from "../config/logger.js";
-import { prisma } from "../config/prisma.js";
-import { ShopService } from "../services/shop.service.js";
+import { logger } from "../../../config/logger.js";
+import { prisma } from "../../../config/prisma.js";
+import { ShopService } from "../../../services/shop.service.js";
 
 // ── Liste de toutes les boutiques ────────────────────────────
 export const getShops = async (_req: Request, res: Response) => {
