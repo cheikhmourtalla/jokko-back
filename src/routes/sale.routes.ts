@@ -5,7 +5,7 @@ import { Router } from "express";
 import {
   getSales, getSaleById, createSale,
   addSalePayment, deleteSale,
-} from "../controllers/sale.controller";
+} from "../controllers/sale.controller.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();

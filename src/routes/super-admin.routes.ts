@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   getShops, createShop, updateShopStatus,
   resetShopPassword, deleteShop,
-} from "../controllers/super-admin.controller";
+} from "../controllers/super-admin.controller.js";
 import { protectSuperAdmin } from "../middlewares/auth.middleware.js";
 
 const router = Router();

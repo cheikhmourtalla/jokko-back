@@ -3,7 +3,7 @@ import {
   PaymentMethod,
   PaymentType,
   PlanType,
-} from "../database/prisma/generated/prisma/enums";
+} from "../database/prisma/generated/prisma/enums.js";
 import { CreatePaymentOptions } from "../types/index.js";
 import { NotFoundError } from "../utils/errors.js";
 import { PaymentService } from "./payment.service.js";

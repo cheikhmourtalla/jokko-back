@@ -3,7 +3,7 @@ import {
   getSuppliers, getSupplierById, createSupplier,
   updateSupplier, deleteSupplier,
   addSupplierDebt, addSupplierPayment,
-} from "../controllers/supplier.controller";
+} from "../controllers/supplier.controller.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();

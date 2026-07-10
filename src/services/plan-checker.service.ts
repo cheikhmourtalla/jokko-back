@@ -1,7 +1,7 @@
 import {
   FeatureCode,
   PlanType,
-} from "../database/prisma/generated/prisma/enums";
+} from "../database/prisma/generated/prisma/enums.js";
 import { NotFoundError } from "../utils/errors.js";
 import { SubscriptionService } from "./subscription.service.js";
 

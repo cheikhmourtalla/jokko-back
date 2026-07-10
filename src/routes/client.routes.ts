@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   getClients, getClientById, createClient, updateClient, deleteClient,
-} from "../controllers/client.controller";
+} from "../controllers/client.controller.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();

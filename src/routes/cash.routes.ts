@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   openCash, closeCash, getCurrentCash,
   getCashHistory, getCashById, addTransaction,
-} from "../controllers/cash.controller";
+} from "../controllers/cash.controller.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();

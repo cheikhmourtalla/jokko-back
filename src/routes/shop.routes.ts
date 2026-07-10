@@ -9,7 +9,7 @@ import {
   updateShopSettings,
   uploadLogo,
   uploadShopLogo,
-} from "../controllers/shop.controller";
+} from "../controllers/shop.controller.js";
 import { authorizeRoles, protect } from "../middlewares/auth.middleware.js";
 
 const router = Router();

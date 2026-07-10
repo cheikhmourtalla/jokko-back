@@ -5,7 +5,7 @@ import {
   login,
   loginSuperAdmin,
   me,
-} from "../controllers/auth.controller";
+} from "../controllers/auth.controller.js";
 import { authorizeRoles, protect } from "../middlewares/auth.middleware.js";
 
 const router = Router();

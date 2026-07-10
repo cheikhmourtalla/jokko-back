@@ -3,7 +3,7 @@ import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
-} from "../utils/errors";
+} from "../utils/errors.js";
 import { PlanChecker } from "./plan-checker.service.js";
 
 export const ClientService = {

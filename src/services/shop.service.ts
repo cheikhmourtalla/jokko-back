@@ -7,7 +7,7 @@ import {
   CurrentShopType,
   PlanType,
   SubscriptionStatus,
-} from "../database/prisma/generated/prisma/enums";
+} from "../database/prisma/generated/prisma/enums.js";
 import {
   ConflictError,
   ForbiddenError,

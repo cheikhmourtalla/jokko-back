@@ -4,7 +4,7 @@ import {
   updateProduct, deleteProduct,
   getLowStockProducts, getOutOfStockProducts,
   getSuggestedPrice,
-} from "../controllers/product.controller";
+} from "../controllers/product.controller.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
