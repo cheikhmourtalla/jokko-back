@@ -1,0 +1,489 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma" // adjust path as needed
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── Super Admin ───────────────────────────────────────────────
+model SuperAdmin {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("super_admins")
+}
+
+// ── Shop ─────────────────────────────────────────────────────
+model Shop {
+  id             Int             @id @default(autoincrement())
+  name           String
+  ownerName      String
+  email          String          @unique
+  phone          String
+  address        String?
+  logoUrl        String?
+  primaryShopId  Int?
+  primaryShop    Shop?           @relation("ShopHierarchy", fields: [primaryShopId], references: [id])
+  secondaryShops Shop[]          @relation("ShopHierarchy")
+  status         String          @default("ACTIVE")
+  currentShop    CurrentShopType @default(PRIMARY)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  users          User[]
+  products       Product[]
+  categories     Category[]
+  clients        Client[]
+  suppliers      Supplier[]
+  sales          Sale[]
+  stockMovements StockMovement[]
+  cashRegisters  CashRegister[]
+  subscriptions  Subscription[]
+  usageCounter   UsageCounter[]
+  owners         ShopOwner[]
+
+  @@map("shops")
+}
+
+model ShopOwner {
+  id           Int            @id @default(autoincrement())
+  userId       Int //  shoop ownerId 
+  shopId       Int
+  subscription Subscription[]
+  phone        String
+  createdAt    DateTime       @default(now())
+  payment        Payment[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([userId, shopId])
+  @@map("shop_owners")
+}
+
+enum CurrentShopType {
+  PRIMARY
+  SECONDARY
+}
+
+model Subscription {
+  id           Int                @id @default(autoincrement())
+  shopId       Int
+  shopOwnerId  Int
+  planId       Int
+  status       SubscriptionStatus @default(TRIAL)
+  startDate    DateTime           @default(now())
+  endDate      DateTime?
+  createdAt    DateTime           @default(now())
+  shop         Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopOwner    ShopOwner          @relation(fields: [shopOwnerId], references: [id])
+  plan         Plan               @relation(fields: [planId], references: [id])
+  subsctiption Payment[]
+
+  @@map("subscriptions")
+}
+
+model Plan {
+  id               Int            @id @default(autoincrement())
+  code             PlanType       @unique
+  name             String
+  price            Int
+  description      String?
+  maxSalesPerMonth Int?
+  maxProducts      Int?
+  maxCustomers     Int?
+  maxUsers         Int?
+  maxStores        Int?
+  createdAt        DateTime       @default(now())
+  subscriptions    Subscription[]
+  planFeature      PlanFeature[]
+  payment          Payment[]
+  
+
+  @@map("plans")
+}
+
+model Feature {
+  id           Int           @id @default(autoincrement())
+  code         FeatureCode   @unique
+  name         String
+  description  String?
+  planFeatures PlanFeature[]
+
+  @@map("features")
+}
+
+model PlanFeature {
+  planId    Int
+  featureId Int
+  plan      Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  feature   Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureId])
+  @@map("plan_features")
+}
+
+model UsageCounter {
+  id          Int         @id @default(autoincrement())
+  shopId      Int
+  metric      UsageMetric
+  used        Int         @default(0)
+  periodStart DateTime
+  periodEnd   DateTime
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, metric])
+  @@map("usage_counters")
+}
+
+// ── User ──────────────────────────────────────────────────────
+model User {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("EMPLOYEE")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  cashRegisters  CashRegister[]
+  stockMovements StockMovement[]
+  sales          Sale[]
+  userCounts     Int             @default(0)
+  ownedShops     ShopOwner[]
+
+  @@map("users")
+}
+
+// ── Category ─────────────────────────────────────────────────
+model Category {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  createdAt DateTime @default(now())
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@map("categories")
+}
+
+// ── Product ───────────────────────────────────────────────────
+model Product {
+  id                  Int      @id @default(autoincrement())
+  shopId              Int
+  categoryId          Int?
+  name                String
+  description         String?
+  reference           String?
+  quantity            Int      @default(0)
+  purchasePrice       Float
+  salePrice           Float
+  semiWholesalePrice  Float?
+  semiWholesaleMinQty Int?
+  wholesalePrice      Float?
+  wholesaleMinQty     Int?
+  alertThreshold      Int      @default(5)
+  imageUrl            String?
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  stockMovements StockMovement[]
+  saleItems      SaleItem[]
+
+  @@map("products")
+}
+
+// ── Client ────────────────────────────────────────────────────
+model Client {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  phone     String
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop  Shop   @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  sales Sale[]
+
+  @@map("clients")
+}
+
+// ── Supplier ──────────────────────────────────────────────────
+model Supplier {
+  id        Int      @id @default(autoincrement())
+  shopId    Int
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shop           Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+  supplierDebts  SupplierDebt[]
+
+  @@map("suppliers")
+}
+
+// ── SupplierDebt ──────────────────────────────────────────────
+model SupplierDebt {
+  id          Int      @id @default(autoincrement())
+  supplierId  Int
+  totalAmount Float
+  paidAmount  Float    @default(0)
+  remaining   Float
+  status      String   @default("UNPAID")
+  note        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  supplier Supplier          @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  payments SupplierPayment[]
+
+  @@map("supplier_debts")
+}
+
+// ── SupplierPayment ───────────────────────────────────────────
+model SupplierPayment {
+  id            Int      @id @default(autoincrement())
+  debtId        Int
+  amount        Float
+  note          String?
+  paymentMethod String   @default("CASH")
+  paidAt        DateTime @default(now())
+
+  debt SupplierDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@map("supplier_payments")
+}
+
+// ── StockMovement ─────────────────────────────────────────────
+model StockMovement {
+  id         Int      @id @default(autoincrement())
+  shopId     Int
+  productId  Int
+  userId     Int?
+  supplierId Int?
+  type       String
+  quantity   Int
+  unitCost   Float?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  product  Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  supplier Supplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+
+  @@map("stock_movements")
+}
+
+// ── Sale ──────────────────────────────────────────────────────
+model Sale {
+  id            Int      @id @default(autoincrement())
+  shopId        Int
+  userId        Int?
+  clientId      Int?
+  invoiceNumber String?  @unique
+  customerName  String?
+  totalAmount   Float
+  paidAmount    Float    @default(0)
+  remaining     Float    @default(0)
+  status        String   @default("UNPAID")
+  note          String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  shop     Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  client   Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  items    SaleItem[]
+  payments SalePayment[]
+
+  @@map("sales")
+}
+
+// ── SaleItem ──────────────────────────────────────────────────
+model SaleItem {
+  id              Int     @id @default(autoincrement())
+  saleId          Int
+  productId       Int?
+  productName     String
+  productImageUrl String?
+  quantity        Int
+  unitPrice       Float
+  totalAmount     Float
+
+  sale    Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@map("sale_items")
+}
+
+// ── SalePayment ───────────────────────────────────────────────
+model SalePayment {
+  id            Int      @id @default(autoincrement())
+  saleId        Int
+  amount        Float
+  note          String?
+  paymentMethod String   @default("CASH")
+  paidAt        DateTime @default(now())
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@map("sale_payments")
+}
+
+// ── CashRegister ─────────────────────────────────────────────
+model CashRegister {
+  id            Int       @id @default(autoincrement())
+  shopId        Int
+  userId        Int?
+  openingAmount Float     @default(0)
+  totalIn       Float     @default(0)
+  totalOut      Float     @default(0)
+  closingAmount Float?
+  status        String    @default("OPEN")
+  note          String?
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+
+  shop         Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user         User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transactions CashTransaction[]
+
+  @@map("cash_registers")
+}
+
+// ── CashTransaction ───────────────────────────────────────────
+model CashTransaction {
+  id             Int      @id @default(autoincrement())
+  cashRegisterId Int
+  type           String
+  amount         Float
+  label          String
+  reference      String?
+  paymentMethod  String   @default("CASH")
+  createdAt      DateTime @default(now())
+
+  cashRegister CashRegister @relation(fields: [cashRegisterId], references: [id], onDelete: Cascade)
+
+  @@map("cash_transactions")
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  shopOwnerId Int
+  shopOwner   ShopOwner @relation(fields: [shopOwnerId], references: [id])
+
+  subscriptionId Int
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+
+  planId Int
+  plan   Plan @relation(fields: [planId], references: [id])
+
+  provider PaymentMethod
+
+  planCode String?
+  planName String?
+
+  status      PaymentStatus @default(PENDING)
+  paymentType PaymentType   @default(SUBSCRIPTION)
+
+  amount Int
+
+  currency Currency @default(FCFA)
+
+  transactionReference String?
+
+  providerReference String?
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
+}
+
+enum PaymentType {
+  SUBSCRIPTION
+  RENEWAL
+  EXTRA_USER
+  EXTRA_STORE
+}
+
+enum Currency {
+  FCFA
+
+  EUR
+
+  USD
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  WAVE
+  ORANGE_MONEY
+  IN_APP
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  EXPIRED
+  TRIAL_EXPIRED
+  SUSPENDED
+
+}
+
+enum FeatureCode {
+  ADVANCED_REPORTS
+  TOP_PRODUCTS
+  LOW_STOCK_ALERT
+  STOCK_VALUE
+  SUPPLIER_MANAGEMENT
+  EMPLOYEE_MANAGEMENT
+  ACCOUNTING
+  MULTI_STORE
+  EXPORT_EXCEL
+  EXPORT_PDF
+  API_ACCESS
+  OUT_OF_STOCK_ALERT
+}
+
+enum PlanType {
+  FREE
+  BASIC
+  PRO
+  PREMIUM
+}
+
+enum UsageMetric {
+  SALES
+  PRODUCTS
+  USERS
+}

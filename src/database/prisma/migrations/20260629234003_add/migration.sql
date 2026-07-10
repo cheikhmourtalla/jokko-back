@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "payments" ALTER COLUMN "planCode" DROP NOT NULL,
+ALTER COLUMN "planName" DROP NOT NULL;
