@@ -10,7 +10,7 @@ import {
   uploadLogo,
   uploadShopLogo,
 } from "../controllers/shop.controller";
-import { authorizeRoles, protect } from "../middlewares/auth.middleware";
+import { authorizeRoles, protect } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

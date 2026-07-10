@@ -6,7 +6,7 @@ import {
   getSales, getSaleById, createSale,
   addSalePayment, deleteSale,
 } from "../controllers/sale.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 router.get("/", protect, authorizeRoles("ADMIN", "EMPLOYEE"), getSales);

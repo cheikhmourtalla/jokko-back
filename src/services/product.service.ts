@@ -1,6 +1,6 @@
-import { prisma } from "../config/prisma";
-import { ForbiddenError } from "../utils/errors";
-import { PlanChecker } from "./plan-checker.service";
+import { prisma } from "../config/prisma.js";
+import { ForbiddenError } from "../utils/errors.js";
+import { PlanChecker } from "./plan-checker.service.js";
 
 export const ProductService = {
   async createProduct(

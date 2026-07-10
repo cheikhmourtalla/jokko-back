@@ -1,7 +1,7 @@
 import { createLogger, format, transports } from "winston";
 import path from "path";
 import fs from "fs";
-import { env } from "./env-config";
+import { env } from "./env-config.js";
 
 // Créer le dossier logs s'il n'existe pas
 const logDir = path.join(process.cwd(), "logs");

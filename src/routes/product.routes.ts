@@ -5,7 +5,7 @@ import {
   getLowStockProducts, getOutOfStockProducts,
   getSuggestedPrice,
 } from "../controllers/product.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

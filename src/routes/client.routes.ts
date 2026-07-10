@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   getClients, getClientById, createClient, updateClient, deleteClient,
 } from "../controllers/client.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 router.get("/", protect, authorizeRoles("ADMIN", "EMPLOYEE"), getClients);

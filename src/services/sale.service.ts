@@ -1,6 +1,6 @@
-import { logger } from "../config/logger";
-import { prisma } from "../config/prisma";
-import { sendNotificationToShop } from "../controllers/notification.controller";
+import { logger } from "../config/logger.js";
+import { prisma } from "../config/prisma.js";
+import { sendNotificationToShop } from "../controllers/notification.controller.js";
 import {
   generateInvoiceNumber,
   getSaleStatus,
@@ -11,7 +11,7 @@ import {
   ForbiddenError,
   NotFoundError,
 } from "../utils/errors";
-import { PlanChecker } from "./plan-checker.service";
+import { PlanChecker } from "./plan-checker.service.js";
 
 export type Item = {
   productId: number;

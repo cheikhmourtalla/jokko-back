@@ -1,8 +1,8 @@
 import { NextFunction, Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { ClientService } from "../services/client.service";
-import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errors";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { ClientService } from "../services/client.service.js";
+import { BadRequestError, ForbiddenError, NotFoundError } from "../utils/errors.js";
 
 export const getClients = async (req: AuthRequest, res: Response) => {
   try {

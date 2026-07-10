@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { ProductService } from "./../services/product.service";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { ProductService } from "./../services/product.service.js";
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {

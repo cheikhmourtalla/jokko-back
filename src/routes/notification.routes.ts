@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { streamNotifications, getStockAlerts } from "../controllers/notification.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { streamNotifications, getStockAlerts } from "../controllers/notification.controller.js";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

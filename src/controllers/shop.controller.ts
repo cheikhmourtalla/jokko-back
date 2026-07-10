@@ -4,12 +4,12 @@ import { Response } from "express";
 import fs from "fs";
 import multer from "multer";
 import path from "path";
-import { logger } from "../config/logger";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { ShopService } from "../services/shop.service";
-import { UnauthorizedError } from "../utils/errors";
-import { env } from "../config/env-config";
+import { logger } from "../config/logger.js";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { ShopService } from "../services/shop.service.js";
+import { UnauthorizedError } from "../utils/errors.js";
+import { env } from "../config/env-config.js";
 
 // Config multer pour les logos
 const logoDir = path.join(process.cwd(), "uploads", "logos");

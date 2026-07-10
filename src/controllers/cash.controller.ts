@@ -1,7 +1,7 @@
 import { Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { logger } from "../config/logger";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { logger } from "../config/logger.js";
 
 // ── Ouvrir la caisse ─────────────────────────────────────────
 export const openCash = async (req: AuthRequest, res: Response) => {

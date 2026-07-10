@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
-import { logger } from '../config/logger';
-import { AppError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../utils/errors';
+import { logger } from '../config/logger.js';
+import { AppError, BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../utils/errors.js';
 
 export const ErrorHandler = (err: any, req: Request, res: Response, next: NextFunction): void => {
   try {

@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { addStockEntry, addStockOut, getStockMovements } from "../controllers/stock.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { addStockEntry, addStockOut, getStockMovements } from "../controllers/stock.controller.js";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

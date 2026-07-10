@@ -1,5 +1,5 @@
-import { prisma } from "../config/prisma";
-import { FeatureCode, PlanType } from "../database/prisma/generated/prisma/enums";
+import { prisma } from "../config/prisma.js";
+import { FeatureCode, PlanType } from "../database/prisma/generated/prisma/enums.js";
 
 export const seedDb = async () => {
   try {
@@ -198,7 +198,7 @@ export const seedDb = async () => {
 
 
 
-// import { prisma } from "../config/prisma";
+// import { prisma } from "../config/prisma.js";
 
 // export const seedDb = async () => {
 //   try {

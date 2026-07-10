@@ -1,8 +1,8 @@
 import { Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { logger } from "../config/logger";
-import { env } from "../config/env-config";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { logger } from "../config/logger.js";
+import { env } from "../config/env-config.js";
 
 // ── Store des connexions SSE actives par shop ─────────────────
 // Map<shopId, Set<Response>>

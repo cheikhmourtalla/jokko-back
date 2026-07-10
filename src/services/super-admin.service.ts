@@ -1,5 +1,5 @@
-import { prisma } from "../config/prisma";
-// import { logger } from "../config/logger";
+import { prisma } from "../config/prisma.js";
+// import { logger } from "../config/logger.js";
 
 
 export const SuperAdminService = {

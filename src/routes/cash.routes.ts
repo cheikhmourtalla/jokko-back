@@ -3,7 +3,7 @@ import {
   openCash, closeCash, getCurrentCash,
   getCashHistory, getCashById, addTransaction,
 } from "../controllers/cash.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

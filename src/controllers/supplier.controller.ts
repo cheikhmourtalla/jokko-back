@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { BadRequestError, ForbiddenError } from "../utils/errors";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { BadRequestError, ForbiddenError } from "../utils/errors.js";
 
 // ── GET /suppliers ────────────────────────────────────────────
 export const getSuppliers = async (req: AuthRequest, res: Response) => {

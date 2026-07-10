@@ -1,6 +1,6 @@
-import { PaymentMethod } from "../database/prisma/generated/prisma/enums";
-import { NotFoundError } from "../utils/errors";
-import { WaveProvider } from "./wave-provider.service";
+import { PaymentMethod } from "../database/prisma/generated/prisma/enums.js";
+import { NotFoundError } from "../utils/errors.js";
+import { WaveProvider } from "./wave-provider.service.js";
 
 export const ProviderFactory = {
   getProvider: (provider: PaymentMethod) => {

@@ -4,7 +4,7 @@ import {
   updateSupplier, deleteSupplier,
   addSupplierDebt, addSupplierPayment,
 } from "../controllers/supplier.controller";
-import { protect, authorizeRoles } from "../middlewares/auth.middleware";
+import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

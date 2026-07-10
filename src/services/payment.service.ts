@@ -1,7 +1,8 @@
-import { prisma } from "../config/prisma";
-import { PaymentStatus } from "../database/prisma/generated/prisma/enums";
-import { CreatePaymentOptions } from "../types";
-import { NotFoundError } from "../utils/errors";
+import { prisma } from "../config/prisma.js";
+import { PaymentStatus } from "../database/prisma/generated/prisma/enums.js";
+import { CreatePaymentOptions } from "../types/index.js";
+
+import { NotFoundError } from "../utils/errors.js";
 
 export const PaymentService = {
   createPayment: async (paymentOptions: CreatePaymentOptions) => {

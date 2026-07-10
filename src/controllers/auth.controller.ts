@@ -1,12 +1,12 @@
 import bcrypt from "bcrypt";
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { logger } from "../config/logger";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { AuthService } from "../services/auth.service";
-import { NotFoundError } from "../utils/errors";
-import { env } from "../config/env-config";
+import { logger } from "../config/logger.js";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { AuthService } from "../services/auth.service.js";
+import { NotFoundError } from "../utils/errors.js";
+import { env } from "../config/env-config.js";
 
 // ── Login utilisateur boutique ────────────────────────────────
 export const login = async (req: Request, res: Response) => {

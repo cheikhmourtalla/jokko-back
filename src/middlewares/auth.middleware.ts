@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import { env } from "../config/env-config";
-import { PlanType } from "../database/prisma/generated/prisma/enums";
+import { env } from "../config/env-config.js";
+import { PlanType } from "../database/prisma/generated/prisma/enums.js";
 
 export interface AuthRequest extends Request {
   user?: {

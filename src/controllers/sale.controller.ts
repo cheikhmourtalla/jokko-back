@@ -1,9 +1,9 @@
 import { NextFunction, Response } from "express";
-import { logger } from "../config/logger";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { SaleService } from "../services/sale.service";
-import { BadRequestError, UnauthorizedError } from "../utils/errors";
+import { logger } from "../config/logger.js";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { SaleService } from "../services/sale.service.js";
+import { BadRequestError, UnauthorizedError } from "../utils/errors.js";
 
 // ── Helpers ───────────────────────────────────────────────────
 export function getSaleStatus(paid: number, total: number) {

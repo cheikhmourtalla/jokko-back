@@ -1,4 +1,4 @@
-import { PaymentMethod } from "../database/prisma/generated/prisma/enums";
+import { PaymentMethod } from "../database/prisma/generated/prisma/enums.js";
 
 export type CreatePaymentRequest = {
   amount: number;

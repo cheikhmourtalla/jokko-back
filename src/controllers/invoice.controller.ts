@@ -1,6 +1,6 @@
 import { Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
 
 // Helper encaissement caisse
 async function recordCashIn(shopId: number, amount: number, label: string, reference: string, paymentMethod = "CASH") {

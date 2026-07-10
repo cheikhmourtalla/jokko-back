@@ -1,7 +1,7 @@
 import { NextFunction, Response } from "express";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { SubscriptionService } from "../services/subscription.service";
-import { NotFoundError } from "../utils/errors";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { SubscriptionService } from "../services/subscription.service.js";
+import { NotFoundError } from "../utils/errors.js";
 
 export const SubscriptionController = {
   getCurrentSubs: async (

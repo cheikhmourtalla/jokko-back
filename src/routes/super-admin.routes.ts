@@ -3,7 +3,7 @@ import {
   getShops, createShop, updateShopStatus,
   resetShopPassword, deleteShop,
 } from "../controllers/super-admin.controller";
-import { protectSuperAdmin } from "../middlewares/auth.middleware";
+import { protectSuperAdmin } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 

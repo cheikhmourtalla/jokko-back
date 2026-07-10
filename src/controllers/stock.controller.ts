@@ -1,8 +1,8 @@
 import { Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { logger } from "../config/logger";
-import { sendNotificationToShop } from "./notification.controller";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { logger } from "../config/logger.js";
+import { sendNotificationToShop } from "./notification.controller.js";
 
 // ── POST /stock/entry ─────────────────────────────────────────
 // Paramètres optionnels :

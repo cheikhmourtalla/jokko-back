@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { BillingService } from "../services/billing.service";
-import { AuthRequest } from "../middlewares/auth.middleware";
+import { BillingService } from "../services/billing.service.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
 
 export const billingController = {
   bilingCheckout: async (

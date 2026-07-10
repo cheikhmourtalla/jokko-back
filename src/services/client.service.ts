@@ -1,10 +1,10 @@
-import { prisma } from "../config/prisma";
+import { prisma } from "../config/prisma.js";
 import {
   BadRequestError,
   ForbiddenError,
   NotFoundError,
 } from "../utils/errors";
-import { PlanChecker } from "./plan-checker.service";
+import { PlanChecker } from "./plan-checker.service.js";
 
 export const ClientService = {
   createClient: async (

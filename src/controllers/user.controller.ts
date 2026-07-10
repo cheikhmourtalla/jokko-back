@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
 import { NextFunction, Response } from "express";
-import { prisma } from "../config/prisma";
-import { AuthRequest } from "../middlewares/auth.middleware";
-import { UserService } from "../services/user.service";
-import { UnauthorizedError } from "../utils/errors";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
+import { UserService } from "../services/user.service.js";
+import { UnauthorizedError } from "../utils/errors.js";
 
 export const getUsers = async (req: AuthRequest, res: Response , next : NextFunction) => {
   try {

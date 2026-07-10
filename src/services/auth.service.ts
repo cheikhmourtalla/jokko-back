@@ -1,5 +1,5 @@
-import { prisma } from "../config/prisma";
-import { NotFoundError } from "../utils/errors";
+import { prisma } from "../config/prisma.js";
+import { NotFoundError } from "../utils/errors.js";
 
 export const AuthService = {
   getMe: async (userId: number, shopId: number) => {

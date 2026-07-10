@@ -2,8 +2,8 @@ import {
   FeatureCode,
   PlanType,
 } from "../database/prisma/generated/prisma/enums";
-import { NotFoundError } from "../utils/errors";
-import { SubscriptionService } from "./subscription.service";
+import { NotFoundError } from "../utils/errors.js";
+import { SubscriptionService } from "./subscription.service.js";
 
 export type SubscriptionDTO = {
   id: number;

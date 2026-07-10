@@ -1,6 +1,6 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
-import { prisma } from "../config/prisma";
+import { prisma } from "../config/prisma.js";
 
 export async function seedAdmin() {
   try {
