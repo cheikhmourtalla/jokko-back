@@ -38,4 +38,4 @@ export const env = {
   mode: envMode,
 };
 
-console.log(env);
+// console.log(env);
