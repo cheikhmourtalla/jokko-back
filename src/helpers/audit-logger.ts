@@ -1,5 +1,5 @@
-import { prisma } from "../../../config/prisma.js";
-import { AuthRequest } from "../../../middlewares/auth.middleware.js";
+import { prisma } from "../config/prisma.js";
+import { AuthRequest } from "../middlewares/auth.middleware.js";
 
 export interface AuditLogInput {
   actorId: number;
