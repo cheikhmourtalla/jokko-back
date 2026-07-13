@@ -487,3 +487,17 @@ enum UsageMetric {
   PRODUCTS
   USERS
 }
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  actorId    Int // ID of the SuperAdmin
+  actorName  String // Name of the SuperAdmin
+  action     String // e.g., "UPDATE_SUBSCRIPTION_PLAN", "CHANGE_SHOP_STATUS"
+  targetType String // e.g., "Shop", "Subscription"
+  targetId   Int // ID of the entity that was changed
+  details    Json? // Optional: store before/after values
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
