@@ -6,12 +6,14 @@ import { protectSuperAdmin } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// router.get("/stats", protectSuperAdmin, getPlatformStats);
 router.get("/stats" ,  SuperAdminShopController.getStats);
 router.get("/shops",  SuperAdminShopController.listShops);
 router.get("/shops/:id",  SuperAdminShopController.getShopDetail);
 
-
+router.post(
+  "subcription",
+  SuperAdminShopController.subcription,
+);
 
 
 // router.get("/shops/:id", protectSuperAdmin, getShopDetail);

@@ -99,9 +99,6 @@ export const SuperAdminShopService = {
   },
 
 
-
-
-
 // shop details
   getShopDetail: async (shopId: number) => {
   const shop = await prisma.shop.findUnique({

@@ -1,13 +1,13 @@
-import { prisma } from "../config/prisma.js";
+import { prisma } from "../../../config/prisma.js";
 import {
   PaymentMethod,
   PaymentType,
   PlanType,
-} from "../database/prisma/generated/prisma/enums.js";
-import { CreatePaymentOptions } from "../types/index.js";
-import { NotFoundError } from "../utils/errors.js";
-import { PaymentService } from "./payment.service.js";
-import { SubscriptionService } from "./subscription.service.js";
+} from "../../../database/prisma/generated/prisma/enums.js";
+import { PaymentService } from "../../../services/payment.service.js";
+import { SubscriptionService } from "../../../services/subscription.service.js";
+import { CreatePaymentOptions } from "../../../types/index.js";
+import { NotFoundError } from "../../../utils/errors.js";
 
 // Later , wil be user to type billing option
 type BillingOptions = {

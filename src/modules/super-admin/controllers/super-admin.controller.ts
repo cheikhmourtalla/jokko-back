@@ -1,107 +1,110 @@
-import bcrypt from "bcrypt";
 import { logger } from "../../../config/logger.js";
 import { prisma } from "../../../config/prisma.js";
-import {
-  getAuditActor,
-  logAuditAction,
-} from "../../../helpers/audit-logger.js";
 import { AuthRequest } from "../../../middlewares/auth.middleware.js";
-import { ShopService } from "../../../services/shop.service.js";
+
+import { NextFunction, Request, Response } from "express";
+import { BillingService } from "../services/billing.service.js";
+import { SuperAdminShopService } from "../services/shop.service.js";
 import { SubscriptionManagementService } from "../services/subscription-management.service.js";
 
-
-import { Request, Response, NextFunction } from "express";
-import { SuperAdminShopService } from "../services/shop.service.js";
-
 export const SuperAdminShopController = {
+  getStats: async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Total shops
+      const totalShops = await prisma.shop.count();
 
-  getStats : async (_req: Request, res: Response , next : NextFunction) => {
-  try {
-    // Total shops
-    const totalShops = await prisma.shop.count();
+      // Shops by status
+      const shopsByStatusGroup = await prisma.shop.groupBy({
+        by: ["status"],
+        _count: { _all: true },
+      });
+      const shopsByStatus: Record<string, number> = {};
+      shopsByStatusGroup.forEach((g: any) => {
+        shopsByStatus[g.status] = g._count._all;
+      });
 
-    // Shops by status
-    const shopsByStatusGroup = await prisma.shop.groupBy({
-      by: ["status"],
-      _count: { _all: true },
-    });
-    const shopsByStatus: Record<string, number> = {};
-    shopsByStatusGroup.forEach((g: any) => {
-      shopsByStatus[g.status] = g._count._all;
-    });
+      // Recent shops
+      const recentShops = await prisma.shop.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          status: true,
+        },
+      });
 
-    // Recent shops
-    const recentShops = await prisma.shop.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: { id: true, name: true, email: true, createdAt: true, status: true },
-    });
+      // Recent subscriptions (with plan & shop)
+      const recentSubscriptions = await prisma.subscription.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: {
+          plan: { select: { code: true, name: true, price: true } },
+          shop: { select: { id: true, name: true, email: true } },
+        },
+      });
 
-    // Recent subscriptions (with plan & shop)
-    const recentSubscriptions = await prisma.subscription.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      include: {
-        plan: { select: { code: true, name: true, price: true } },
-        shop: { select: { id: true, name: true, email: true } },
-      },
-    });
+      // Subscriptions group by status and by plan (plan code)
+      const subsGroup = await prisma.subscription.groupBy({
+        by: ["status", "planId"],
+        _count: { _all: true },
+      });
 
-    // Subscriptions group by status and by plan (plan code)
-    const subsGroup = await prisma.subscription.groupBy({
-      by: ["status", "planId"],
-      _count: { _all: true },
-    });
+      // Fetch involved plans to map ids to codes
+      const planIds = Array.from(new Set(subsGroup.map((s: any) => s.planId)));
+      const plans =
+        planIds.length > 0
+          ? await prisma.plan.findMany({ where: { id: { in: planIds } } })
+          : [];
+      const planById: Record<number, any> = {};
+      plans.forEach((p) => (planById[p.id] = p));
 
-    // Fetch involved plans to map ids to codes
-    const planIds = Array.from(new Set(subsGroup.map((s: any) => s.planId)));
-    const plans =
-      planIds.length > 0
-        ? await prisma.plan.findMany({ where: { id: { in: planIds } } })
-        : [];
-    const planById: Record<number, any> = {};
-    plans.forEach((p) => (planById[p.id] = p));
+      const subscriptionsByStatus: Record<string, number> = {};
+      const subscriptionsByPlan: Record<string, number> = {};
 
-    const subscriptionsByStatus: Record<string, number> = {};
-    const subscriptionsByPlan: Record<string, number> = {};
+      subsGroup.forEach((g: any) => {
+        const status = g.status;
+        subscriptionsByStatus[status] =
+          (subscriptionsByStatus[status] || 0) + g._count._all;
 
-    subsGroup.forEach((g: any) => {
-      const status = g.status;
-      subscriptionsByStatus[status] = (subscriptionsByStatus[status] || 0) + g._count._all;
+        const plan = planById[g.planId];
+        const planCode = plan ? plan.code : String(g.planId);
+        subscriptionsByPlan[planCode] =
+          (subscriptionsByPlan[planCode] || 0) + g._count._all;
+      });
 
-      const plan = planById[g.planId];
-      const planCode = plan ? plan.code : String(g.planId);
-      subscriptionsByPlan[planCode] = (subscriptionsByPlan[planCode] || 0) + g._count._all;
-    });
+      // MRR estimate: sum of plan.price for ACTIVE subscriptions (excluding FREE)
+      const activeSubs = await prisma.subscription.findMany({
+        where: { status: "ACTIVE" },
+        include: { plan: { select: { code: true, price: true } } },
+      });
 
-    // MRR estimate: sum of plan.price for ACTIVE subscriptions (excluding FREE)
-    const activeSubs = await prisma.subscription.findMany({
-      where: { status: "ACTIVE" },
-      include: { plan: { select: { code: true, price: true } } },
-    });
+      const mrr = activeSubs.reduce((acc, s) => {
+        if (!s.plan || s.plan.code === "FREE") return acc;
+        return acc + (s.plan.price || 0);
+      }, 0);
 
-    const mrr = activeSubs.reduce((acc, s) => {
-      if (!s.plan || s.plan.code === "FREE") return acc;
-      return acc + (s.plan.price || 0);
-    }, 0);
+      return res.status(200).json({
+        totalShops,
+        shopsByStatus,
+        subscriptionsByStatus,
+        subscriptionsByPlan,
+        mrr,
+        recentShops,
+        recentSubscriptions,
+      });
+    } catch (error) {
+      logger.error(error);
+      return res
+        .status(500)
+        .json({ message: "Erreur récupération stats", error });
+      next(error);
+    }
+  },
 
-    return res.status(200).json({
-      totalShops,
-      shopsByStatus,
-      subscriptionsByStatus,
-      subscriptionsByPlan,
-      mrr,
-      recentShops,
-      recentSubscriptions,
-    });
-  } catch (error) {
-    logger.error(error);
-    return res.status(500).json({ message: "Erreur récupération stats", error });
-     next(error);
-  }
-},
-
-// list shop 
+  // list shop
   listShops: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { page, limit, q, status, plan } = req.query;
@@ -120,15 +123,30 @@ export const SuperAdminShopController = {
     }
   },
 
-  // shopp detail 
+  // shopp detail
   getShopDetail: async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const shopId = Number(req.params.id);
-    const result = await SuperAdminShopService.getShopDetail(shopId);
-    return res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-},
-};
+    try {
+      const shopId = Number(req.params.id);
+      const result = await SuperAdminShopService.getShopDetail(shopId);
+      return res.status(200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  },
 
+  // billing
+  subcription: async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const { shop_id, planType } = req.body;
+      const result = await SubscriptionManagementService.changePlan(
+        shop_id,
+        planType,
+      );
+      logger.info("New subscription");
+      return res.status(200).json(result);
+    } catch (e) {
+      console.log(e);
+      next(e);
+    }
+  },
+};

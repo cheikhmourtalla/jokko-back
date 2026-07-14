@@ -8,7 +8,6 @@ import { env } from "./config/env-config.js";
 import { logger, morganStream } from "./config/logger.js";
 import { ErrorHandler } from "./middlewares/error-handler.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
-import billingRoute from "./routes/billing.routes.js";
 import cashRoutes from "./routes/cash.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import clientRoutes from "./routes/client.routes.js";
@@ -70,7 +69,6 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/subscription", subscription);
-app.use("/api/billing", billingRoute);
 
 app.use((req: Request, res: Response) => {
   logger.warn(`404 — Route non trouvée : ${req.method} ${req.originalUrl}`);
