@@ -1,28 +1,23 @@
 import { Router } from "express";
-import {
-  SuperAdminShopController
-} from "./controllers/super-admin.controller";
-import { protectSuperAdmin } from "../../middlewares/auth.middleware.js";
+import { SuperAdminShopController } from "./controllers/super-admin.controller";
 
 const router = Router();
 
-router.get("/stats" ,  SuperAdminShopController.getStats);
-router.get("/shops",  SuperAdminShopController.listShops);
-router.get("/shops/:id",  SuperAdminShopController.getShopDetail);
+router.get("/stats", SuperAdminShopController.getStats);
+router.get("/shops", SuperAdminShopController.listShops);
+router.get("/shops/:id", SuperAdminShopController.getShopDetail);
 
-router.post(
-  "subcription",
-  SuperAdminShopController.subcription,
-);
-
-
-// router.get("/shops/:id", protectSuperAdmin, getShopDetail);
-// router.post("/shops", protectSuperAdmin, createShop);
-// router.patch("/shops/:id/status", protectSuperAdmin, updateShopStatus);
 // Subscription management
-// router.patch("/shops/:shopId/subscription/plan", protectSuperAdmin, updateSubscriptionPlan);
-// router.patch("/shops/:shopId/subscription/status", protectSuperAdmin, updateSubscriptionStatus);
-// router.patch("/shops/:shopId/subscription/extend", protectSuperAdmin, extendTrialPeriod);
-// router.delete("/shops/:id", protectSuperAdmin, deleteShop);
+
+router.post("/subscription", SuperAdminShopController.subscription);
+
+router.patch(
+  "/shops/:shopId/subscription/status",
+  SuperAdminShopController.updateSubscriptionStatus,
+);
+router.patch(
+  "/shops/:shopId/subscription/extend",
+  SuperAdminShopController.extendTrialPeriod,
+);
 
 export default router;

@@ -134,8 +134,8 @@ export const SuperAdminShopController = {
     }
   },
 
-  // billing
-  subcription: async (req: AuthRequest, res: Response, next: NextFunction) => {
+  // extendTrialPeriod
+  subscription : async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
       const { shop_id, planType } = req.body;
       const result = await SubscriptionManagementService.changePlan(
@@ -144,6 +144,29 @@ export const SuperAdminShopController = {
       );
       logger.info("New subscription");
       return res.status(200).json(result);
+    } catch (e) {
+      console.log(e);
+      next(e);
+    }
+  },
+
+  // extendTrialPeriod
+updateSubscriptionStatus: async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const shopId = Number(req.params.shopId);
+    const { status } = req.body;
+    const result = await SubscriptionManagementService.updateStatus(shopId, status);
+    return res.status(200).json(result);
+  } catch (e) {
+    console.log(e);
+    next(e);
+  }
+},
+  // extendTrialPeriod
+  extendTrialPeriod : async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+
+      return res.status(200).json("extendTrialPeriod");
     } catch (e) {
       console.log(e);
       next(e);
