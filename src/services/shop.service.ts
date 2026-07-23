@@ -25,8 +25,6 @@ export const ShopService = {
     address: string | null,
     hashedPassword: string,
     planType: PlanType,
-    onwnerId?: number,
-    currentShop?: CurrentShopType,
   ) => {
     try {
       let endDate: Date | null;
@@ -54,17 +52,18 @@ export const ShopService = {
           },
         });
 
+        
         // Find existing plan
         const plan = await tx.plan.findUnique({
           where: {
             code: planType,
           },
         });
-
+        
         if (!plan) {
           throw new NotFoundError("Plan not found");
         }
-
+     
         // Create subscription
 
         const actor = await tx.user.create({
@@ -85,10 +84,12 @@ export const ShopService = {
           },
         });
 
+
+
         await tx.subscription.create({
           data: {
             shopId: owner.shopId,
-            shopOwnerId: owner.userId,
+            shopOwnerId: owner.id,
             planId: plan.id,
             status: subscriptionStatus,
             endDate,
