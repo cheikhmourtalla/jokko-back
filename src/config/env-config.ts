@@ -3,13 +3,12 @@ import dotenv from "dotenv";
 if (process.env.NODE_ENV === "production") {
   dotenv.config();
 } else {
-    dotenv.config({
+  dotenv.config({
     path: `.env.${process.env.NODE_ENV}.local`, // env file name + path
   });
 }
 
 const data = process.env;
-
 
 const envMode = data.NODE_ENV;
 export const env = {
@@ -38,4 +37,4 @@ export const env = {
   mode: envMode,
 };
 
-// console.log(env);
+console.log(env);
