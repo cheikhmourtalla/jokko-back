@@ -122,12 +122,12 @@ export const SubscriptionManagementService = {
     const newEndDate = new Date(subscription.endDate);
     newEndDate.setDate(newEndDate.getDate() + daysToAdd);
 
-    const updated = await prisma.subscription.update({
+    const update = await prisma.subscription.update({
       where: { id: subscription.id },
       data: { endDate: newEndDate },
       include: { plan: true, shop: true },
     });
 
-    return updated;
+    return update;
   },
 };
