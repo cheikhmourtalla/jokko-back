@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { env } from "../config/env-config.js";
+import { buildPublicBaseUrl } from "../utils/url.js";
+import { isValidImageFile } from "../utils/file-signature.js";
 
 // Dossier uploads
 const uploadDir = path.join(process.cwd(), "uploads", "products");
@@ -42,7 +43,14 @@ export const uploadProductImage = (req: Request, res: Response) => {
     return res.status(400).json({ message: "Aucun fichier reçu" });
   }
 
-  const baseUrl =  `${env.server}:${env.port || 5000}`;
+  if (!isValidImageFile(req.file.path)) {
+    fs.unlinkSync(req.file.path);
+    return res
+      .status(400)
+      .json({ message: "Le fichier envoyé n'est pas une image valide" });
+  }
+
+  const baseUrl = buildPublicBaseUrl(req);
   const imageUrl = `${baseUrl}/uploads/products/${req.file.filename}`;
 
   return res.status(200).json({

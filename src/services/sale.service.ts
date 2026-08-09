@@ -20,6 +20,177 @@ export type Item = {
 };
 
 export const SaleService = {
+  /**
+   * Modifie une vente existante (articles, quantités, client...).
+   * Règle de sécurité comptable : on n'autorise la modification que
+   * tant qu'aucun paiement n'a été enregistré sur la facture (paidAmount === 0).
+   * Si un paiement existe déjà, il faut annuler la vente et en recréer une
+   * (workflow existant), pour ne jamais désynchroniser caisse / dette client.
+   */
+  updateSale: async (
+    shopId: number,
+    userId: number,
+    saleId: number,
+    clientId: number | null | undefined,
+    customerName: string | undefined,
+    items: Item[],
+    note: string | undefined,
+  ) => {
+    const existingSale = await prisma.sale.findFirst({
+      where: { id: saleId, shopId },
+      include: { items: true },
+    });
+    if (!existingSale) {
+      throw new NotFoundError("Facture introuvable");
+    }
+
+    if (existingSale.paidAmount > 0) {
+      throw new ForbiddenError(
+        "Impossible de modifier une facture ayant déjà reçu un paiement. Annulez-la puis recréez-la si besoin.",
+      );
+    }
+
+    if (!items || items.length === 0) {
+      throw new BadRequestError("Au moins un article est requis");
+    }
+
+    if (!clientId && !customerName?.trim()) {
+      throw new BadRequestError("Client ou nom du client passager requis");
+    }
+
+    const newProductIds = items.map((i) => Number(i.productId));
+    const products = await prisma.product.findMany({
+      where: { id: { in: newProductIds }, shopId },
+    });
+
+    for (const item of items) {
+      const product = products.find((p) => p.id === Number(item.productId));
+      if (!product) {
+        throw new NotFoundError(`Produit ID ${item.productId} introuvable`);
+      }
+    }
+
+    // Quantité déjà réservée par l'ancienne version de la facture, par produit
+    const previouslySold = new Map<number, number>();
+    for (const oldItem of existingSale.items) {
+      if (!oldItem.productId) continue;
+      previouslySold.set(
+        oldItem.productId,
+        (previouslySold.get(oldItem.productId) || 0) + oldItem.quantity,
+      );
+    }
+
+    // Quantité demandée par la nouvelle version, par produit
+    const newlyRequested = new Map<number, number>();
+    for (const item of items) {
+      const pid = Number(item.productId);
+      newlyRequested.set(pid, (newlyRequested.get(pid) || 0) + Number(item.quantity));
+    }
+
+    // Vérifie que le stock disponible (stock actuel + ce qui était déjà
+    // réservé par cette facture) suffit pour la nouvelle quantité demandée.
+    for (const [productId, requestedQty] of newlyRequested.entries()) {
+      const product = products.find((p) => p.id === productId)!;
+      const alreadyReserved = previouslySold.get(productId) || 0;
+      const availableForThisSale = product.quantity + alreadyReserved;
+      if (requestedQty > availableForThisSale) {
+        throw new BadRequestError(
+          `Stock insuffisant pour "${product.name}" (disponible: ${availableForThisSale})`,
+        );
+      }
+    }
+
+    const totalAmount = items.reduce(
+      (sum, item) => sum + Number(item.unitPrice) * Number(item.quantity),
+      0,
+    );
+
+    const updatedSale = await prisma.$transaction(async (tx) => {
+      // 1. Restaurer le stock consommé par l'ancienne version de la facture
+      for (const [productId, qty] of previouslySold.entries()) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { quantity: { increment: qty } },
+        });
+      }
+
+      // 2. Consommer le stock pour la nouvelle version de la facture
+      for (const [productId, qty] of newlyRequested.entries()) {
+        await tx.product.update({
+          where: { id: productId },
+          data: { quantity: { decrement: qty } },
+        });
+      }
+
+      // 3. Tracer le mouvement net de stock par produit (delta) pour l'historique
+      const allProductIds = new Set([
+        ...previouslySold.keys(),
+        ...newlyRequested.keys(),
+      ]);
+      for (const productId of allProductIds) {
+        const before = previouslySold.get(productId) || 0;
+        const after = newlyRequested.get(productId) || 0;
+        const delta = after - before; // >0 = vente supplémentaire, <0 = restitution
+        if (delta !== 0) {
+          await tx.stockMovement.create({
+            data: {
+              shopId,
+              productId,
+              userId,
+              type: delta > 0 ? "SALE" : "ENTRY",
+              quantity: Math.abs(delta),
+              note: `Modification facture ${existingSale.invoiceNumber || `#${saleId}`}`,
+            },
+          });
+        }
+      }
+
+      // 4. Remplacer les lignes de la facture
+      await tx.saleItem.deleteMany({ where: { saleId } });
+
+      const sale = await tx.sale.update({
+        where: { id: saleId },
+        data: {
+          clientId: clientId ? Number(clientId) : null,
+          customerName: customerName?.trim() || null,
+          totalAmount,
+          paidAmount: 0,
+          remaining: totalAmount,
+          status: "UNPAID",
+          note: note || null,
+          items: {
+            create: items.map((item) => {
+              const product = products.find(
+                (p) => p.id === Number(item.productId),
+              )!;
+              return {
+                productId: product.id,
+                productName: product.name,
+                productImageUrl: product.imageUrl,
+                quantity: Number(item.quantity),
+                unitPrice: Number(item.unitPrice),
+                totalAmount: Number(item.unitPrice) * Number(item.quantity),
+              };
+            }),
+          },
+        },
+        include: {
+          client: true,
+          items: { include: { product: true } },
+          payments: true,
+        },
+      });
+
+      return sale;
+    });
+
+    logger.info(
+      `✏️ Facture modifiée — ${existingSale.invoiceNumber} — Nouveau total: ${totalAmount} FCFA — Shop: ${shopId}`,
+    );
+
+    return updatedSale;
+  },
+
   createSale: async (
     shopOwnerId :number,
     shopId: number,
