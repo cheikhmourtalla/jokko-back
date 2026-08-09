@@ -9,7 +9,8 @@ import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ShopService } from "../services/shop.service.js";
 import { UnauthorizedError } from "../utils/errors.js";
-import { env } from "../config/env-config.js";
+import { buildPublicBaseUrl } from "../utils/url.js";
+import { isValidImageFile } from "../utils/file-signature.js";
 
 // Config multer pour les logos
 const logoDir = path.join(process.cwd(), "uploads", "logos");
@@ -157,7 +158,7 @@ export const createShop = async (req: Request, res: Response) => {
 
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-    const shop = ShopService.createShop(
+    const shop = await ShopService.createShop(
       shopName,
       ownerName,
       email,
@@ -165,14 +166,12 @@ export const createShop = async (req: Request, res: Response) => {
       address,
       hashedPassword,
       planType,
-      onwnerId,
-      currentShop,
     );
 
     logger.info(`🏪 Nouvelle boutique créée — "${shopName}" — Email: ${email}`);
     return res
       .status(201)
-      .json({ success: true ,  message: "Boutique créée avec succès",  });
+      .json({ success: true, message: "Boutique créée avec succès", shop });
   } catch (error) {
     return res.status(500).json({ message: "Erreur création boutique", error });
   }
@@ -262,8 +261,14 @@ export const uploadShopLogo = (req: AuthRequest, res: Response) => {
     return res.status(400).json({ message: "Aucun fichier reçu" });
   }
 
-  const baseUrl =
-    `${env.server}:${env.port || 5000}`;
+  if (!isValidImageFile(req.file.path) && path.extname(req.file.filename).toLowerCase() !== ".svg") {
+    fs.unlinkSync(req.file.path);
+    return res
+      .status(400)
+      .json({ message: "Le fichier envoyé n'est pas une image valide" });
+  }
+
+  const baseUrl = buildPublicBaseUrl(req);
   const logoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
 
   // Mettre à jour le logo en base
