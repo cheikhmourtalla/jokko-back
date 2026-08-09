@@ -17,6 +17,7 @@ export const env = {
   logLevel: data.LOG_LEVEL,
   db: {
     url: data.DATABASE_URL,
+    directUrl : data.DIRECT_URL
   },
   secret: {
     jwt: data.JWT_SECRET as string,
