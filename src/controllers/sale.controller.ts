@@ -229,6 +229,41 @@ export const createSale = async (
   }
 };
 
+// ── PUT /sales/:id ────────────────────────────────────────────
+export const updateSale = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const shopId = req.user!.shopId;
+    const userId = req.user!.userId;
+    const saleId = Number(req.params.id);
+
+    const { clientId, customerName, items, note } = req.body;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new BadRequestError("Au moins un article est requis");
+    }
+
+    const sale = await SaleService.updateSale(
+      shopId,
+      userId,
+      saleId,
+      clientId,
+      customerName,
+      items,
+      note,
+    );
+
+    return res
+      .status(200)
+      .json({ message: "Facture modifiée avec succès", sale });
+  } catch (e) {
+    next(e);
+  }
+};
+
 // ── PATCH /sales/:id/payment ──────────────────────────────────
 export const addSalePayment = async (req: AuthRequest, res: Response) => {
   const saleId = Number(req.params.id);
