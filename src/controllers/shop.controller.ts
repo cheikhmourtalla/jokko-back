@@ -1,49 +1,16 @@
 import bcrypt from "bcrypt";
 import type { NextFunction, Request } from "express";
 import { Response } from "express";
-import fs from "fs";
-import multer from "multer";
+
 import path from "path";
 import { logger } from "../config/logger.js";
 import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ShopService } from "../services/shop.service.js";
-import { UnauthorizedError } from "../utils/errors.js";
-import { buildPublicBaseUrl } from "../utils/url.js";
-import { isValidImageFile } from "../utils/file-signature.js";
-
-// Config multer pour les logos
-const logoDir = path.join(process.cwd(), "uploads", "logos");
-if (!fs.existsSync(logoDir)) {
-  fs.mkdirSync(logoDir, { recursive: true });
-}
-
-const logoStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, logoDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `logo_${Date.now()}${ext}`);
-  },
-});
-
-const logoFilter = (
-  _req: Request,
-  file: Express.Multer.File,
-  cb: multer.FileFilterCallback,
-) => {
-  const allowed = [".jpg", ".jpeg", ".png", ".webp", ".svg"];
-  if (allowed.includes(path.extname(file.originalname).toLowerCase())) {
-    cb(null, true);
-  } else {
-    cb(new Error("Format non supporté. Utilisez JPG, PNG, WebP ou SVG."));
-  }
-};
-
-export const uploadLogo = multer({
-  storage: logoStorage,
-  fileFilter: logoFilter,
-  limits: { fileSize: 3 * 1024 * 1024 }, // 3MB max
-});
+import { NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import { UploadService } from "../modules/uploads/upload.service.js";
+import { getFullStorageUrl, validateFile } from "../utils/file-upload.js";
+import { LOGO_BUCKET } from "../config/storage.config.js";
 
 // Create seconday shop
 export const createSecondShop = async (
@@ -129,8 +96,6 @@ export const switchShop = async (
   }
 };
 
-
-
 export const createShop = async (req: Request, res: Response) => {
   try {
     const {
@@ -177,14 +142,12 @@ export const createShop = async (req: Request, res: Response) => {
   }
 };
 
-
-
 // ── GET /shop/settings ────────────────────────────────────────
 export const getShopSettings = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
 
-    const shop = await prisma.shop.findUnique({
+    const shopData = await prisma.shop.findUnique({
       where: { id: shopId },
       include: {
         subscriptions: {
@@ -199,6 +162,8 @@ export const getShopSettings = async (req: AuthRequest, res: Response) => {
         },
       },
     });
+
+    const shop = { ...shopData , logoUrl :getFullStorageUrl(LOGO_BUCKET, shopData?.logoUrl as string)}
 
     if (!shop) return res.status(404).json({ message: "Boutique introuvable" });
 
@@ -217,16 +182,13 @@ export const updateShopSettings = async (req: AuthRequest, res: Response) => {
     const { name, ownerName, phone, address } = req.body;
 
     if (!name || !ownerName || !phone) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Nom boutique et nom propriétaire et le numéro  obligatoires ",
-        });
+      return res.status(400).json({
+        message: "Nom boutique et nom propriétaire et le numéro  obligatoires ",
+      });
     }
 
     const shop = prisma.$transaction(async (tx) => {
-     const res =  await tx.shop.update({
+      const res = await tx.shop.update({
         where: { id: user?.shopId },
         data: {
           name: name.trim(),
@@ -236,15 +198,12 @@ export const updateShopSettings = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      await tx.shopOwner.updateMany ({
-        where : {shopId:user?.shopId, userId :user?.ownerId  },
-        data : {
-          phone : res.phone
-        }
-      })
-
-
-
+      await tx.shopOwner.updateMany({
+        where: { shopId: user?.shopId, userId: user?.ownerId },
+        data: {
+          phone: res.phone,
+        },
+      });
     });
 
     return res.status(200).json({ message: "Paramètres mis à jour", shop });
@@ -256,31 +215,27 @@ export const updateShopSettings = async (req: AuthRequest, res: Response) => {
 };
 
 // ── POST /shop/logo ───────────────────────────────────────────
-export const uploadShopLogo = (req: AuthRequest, res: Response) => {
+export const uploadShopLogo = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.userId;
   if (!req.file) {
     return res.status(400).json({ message: "Aucun fichier reçu" });
   }
+  const file = req.file;
 
-  if (!isValidImageFile(req.file.path) && path.extname(req.file.filename).toLowerCase() !== ".svg") {
-    fs.unlinkSync(req.file.path);
-    return res
-      .status(400)
-      .json({ message: "Le fichier envoyé n'est pas une image valide" });
-  }
-
-  const baseUrl = buildPublicBaseUrl(req);
-  const logoUrl = `${baseUrl}/uploads/logos/${req.file.filename}`;
-
+  validateFile(file);
+  const generatePath = `/logo-${Date.now()}.${file.mimetype}`;
+  const logoPath = await UploadService.uploadLogo(file, generatePath);
+ 
   // Mettre à jour le logo en base
   prisma.shop
     .update({
       where: { id: req.user!.shopId },
-      data: { logoUrl },
+      data: { logoUrl:  logoPath.path },
     })
     .then((shop) => {
       return res.status(200).json({
         message: "Logo uploadé avec succès",
-        logoUrl,
+        generatePath,
         shop,
       });
     })
@@ -294,22 +249,29 @@ export const deleteShopLogo = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
 
-    const shop = await prisma.shop.findUnique({ where: { id: shopId } });
+    const shop = await prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { logoUrl: true },
+    });
     if (!shop) return res.status(404).json({ message: "Boutique introuvable" });
 
-    // Supprimer le fichier si c'est un logo uploadé (pas une URL externe)
-    if (shop.logoUrl && shop.logoUrl.includes("/uploads/logos/")) {
-      const filename = shop.logoUrl.split("/uploads/logos/")[1];
-      const filePath = path.join(logoDir, filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    }
+    const data = await UploadService.deleteFile(
+      LOGO_BUCKET,
+      shop.logoUrl ?? "",
+    );
 
-    await prisma.shop.update({
-      where: { id: shopId },
-      data: { logoUrl: null },
-    });
+    // Optionnel : Avertir si rien n'a été trouvé
+  if (!data || data.length === 0) {
+    logger.warn(`Aucun fichier trouvé à supprimer dans '${LOGO_BUCKET}' au chemin : ${path}`);
+  }
+
+console.log(data)
+  
+
+    // await prisma.shop.update({
+    //   where: { id: shopId },
+    //   data: { logoUrl: null },
+    // });
 
     return res.status(200).json({ message: "Logo supprimé" });
   } catch (error) {

@@ -15,6 +15,8 @@ import {
   UnauthorizedError,
 } from "../utils/errors.js";
 import { env } from "../config/env-config.js";
+import { getFullStorageUrl } from "../utils/file-upload.js";
+import { LOGO_BUCKET } from "../config/storage.config.js";
 
 export const ShopService = {
   createShop: async (
@@ -280,7 +282,7 @@ export const ShopService = {
       name: s.shop.name,
       plan: s.shop.subscriptions[0].plan.code,
       address: s.shop.address,
-      logoUrl: s.shop.logoUrl,
+      logoUrl:  getFullStorageUrl(LOGO_BUCKET, s.shop.logoUrl),
       currentShop: s.shop.currentShop,
     }));
 

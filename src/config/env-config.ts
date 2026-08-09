@@ -22,6 +22,11 @@ export const env = {
   secret: {
     jwt: data.JWT_SECRET as string,
   },
+  storage : {
+    superbaseUrl : data.SUPABASE_URL as string,
+    superbaseSecretKey : data.SUPABASE_SECRET_KEY as string, 
+    publicBucketsUrl : `${process.env.SUPABASE_URL}/storage/v1/object/public`
+  },
 
   //  Mail
   mail: {

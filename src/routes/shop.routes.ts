@@ -7,10 +7,10 @@ import {
   getShopSettings,
   switchShop,
   updateShopSettings,
-  uploadLogo,
   uploadShopLogo,
 } from "../controllers/shop.controller.js";
 import { authorizeRoles, protect } from "../middlewares/auth.middleware.js";
+import { upload } from "../config/storage.config.js";
 
 const router = Router();
 
@@ -36,7 +36,7 @@ router.post(
   "/logo",
   protect,
   authorizeRoles("ADMIN"),
-  uploadLogo.single("logo"),
+  upload.single("logo"),
   uploadShopLogo,
 );
 router.delete("/logo", protect, authorizeRoles("ADMIN"), deleteShopLogo);
