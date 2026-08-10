@@ -17,7 +17,6 @@ export const AuthService = {
       throw new NotFoundError("not found");
     }
 
-    // console.log(user);
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
       include: {

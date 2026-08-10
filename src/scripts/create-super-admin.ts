@@ -1,6 +1,7 @@
 import "dotenv/config";
 import bcrypt from "bcrypt";
 import { prisma } from "../config/prisma.js";
+import { logger } from "../config/logger.js";
 
 export async function seedAdmin() {
   try {
@@ -10,7 +11,7 @@ export async function seedAdmin() {
     const existing = await prisma.superAdmin.findUnique({ where: { email } });
 
     if (existing) {
-      console.log("✅ Super Admin existe déjà :", email);
+      logger.info("✅ Super Admin existe déjà :", email);
       return;
     }
 
@@ -24,14 +25,11 @@ export async function seedAdmin() {
       },
     });
 
-    console.log("✅ Super Admin créé avec succès !");
-    console.log("   Email    :", email);
-    console.log("   Password :", password);
-    console.log("   ⚠️  Changez ce mot de passe en production !");
+    logger.info("✅ Super Admin créé avec succès !");
+    logger.info("✅ Email    :", email);
+    logger.info("✅ Password :", password);
+    logger.info("⚠️  Changez ce mot de passe en production !");
   } catch (e) {
-
-    console.error(" ❌ Seed admin Error")
-
-
+    logger.error(" ❌ Seed admin Error");
   }
 }

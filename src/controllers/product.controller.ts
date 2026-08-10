@@ -86,12 +86,7 @@ export const createProduct = async (
       wholesaleMinQty,
     } = req.body;
 
-    console.log({
-      shopId,
-      name,
-      purchasePrice,
-      salePrice,
-    });
+
     if (!name || purchasePrice == null || salePrice == null) {
       return res.status(400).json({
         message: "Nom, prix d'achat et prix de vente sont obligatoires",
@@ -120,7 +115,6 @@ export const createProduct = async (
       .status(201)
       .json({ message: "Produit créé avec succès", product });
   } catch (e) {
-    // console.log(e);
     next(e);
   }
 };

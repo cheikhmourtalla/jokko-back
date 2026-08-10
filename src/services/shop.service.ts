@@ -330,7 +330,6 @@ export const ShopService = {
     }
 
     let plan = actor.shop.subscriptions[0].plan.code;
-    // console.log({ actor });
 
     // if (plan !== "PRO" && plan !== "PREMIUM") {
     //   throw new UnauthorizedError(
@@ -372,6 +371,5 @@ export const ShopService = {
         shopName: actor.shop.name,
       },
     };
-    console.log({ shopOwnerId, shopData, ownership, isPasswordValid });
   },
 };

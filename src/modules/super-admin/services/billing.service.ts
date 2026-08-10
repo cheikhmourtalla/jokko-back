@@ -56,7 +56,6 @@ export const BillingService = {
       provider: billingOptions.provider,
       amount: amount,
     };
-    console.log({shopOwnerId : paymentData.shopOwnerId})
     
     const payment = await PaymentService.createPayment(paymentData);
 

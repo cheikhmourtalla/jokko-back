@@ -42,5 +42,3 @@ export const env = {
   frontendUrl: data.FRONTEND_URL,
   mode: envMode,
 };
-
-// console.log(env);

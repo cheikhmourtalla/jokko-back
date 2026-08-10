@@ -145,7 +145,7 @@ export const SuperAdminShopController = {
       logger.info("New subscription");
       return res.status(200).json(result);
     } catch (e) {
-      console.log(e);
+      logger.warn(`Error cannot change subscription plan ${e}`);
       next(e);
     }
   },
@@ -158,7 +158,9 @@ updateSubscriptionStatus: async (req: AuthRequest, res: Response, next: NextFunc
     const result = await SubscriptionManagementService.updateStatus(shopId, status);
     return res.status(200).json(result);
   } catch (e) {
-    console.log(e);
+      logger.warn(`Error, cannot change subscription Status ${e}`);
+
+ 
     next(e);
   }
 },
@@ -168,7 +170,7 @@ updateSubscriptionStatus: async (req: AuthRequest, res: Response, next: NextFunc
 
       return res.status(200).json("extendTrialPeriod");
     } catch (e) {
-      console.log(e);
+      logger.warn(`Error, cannot extend subscription ${e}`);
       next(e);
     }
   },

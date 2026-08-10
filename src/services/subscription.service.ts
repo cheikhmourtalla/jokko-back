@@ -85,7 +85,6 @@ export const SubscriptionService = {
     // Trial still active
     if (subscription.endDate > now) {
 
-      console.log(subscription)
       return subscription;
     }
 

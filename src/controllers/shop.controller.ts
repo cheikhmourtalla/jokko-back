@@ -6,7 +6,7 @@ import { logger } from "../config/logger.js";
 import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ShopService } from "../services/shop.service.js";
-import { NotFoundError, UnauthorizedError } from "../utils/errors.js";
+import { UnauthorizedError } from "../utils/errors.js";
 import { UploadService } from "../modules/uploads/upload.service.js";
 import {
   cleanPath,

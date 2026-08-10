@@ -97,7 +97,6 @@ export const protectSuperAdmin = (
     };
 
     if (decoded.role !== "SUPER_ADMIN") {
-      console.log(decoded.role)
       throw new UnauthorizedError("Forbidenn");
     }
 
