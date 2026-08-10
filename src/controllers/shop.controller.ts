@@ -2,14 +2,17 @@ import bcrypt from "bcrypt";
 import type { NextFunction, Request } from "express";
 import { Response } from "express";
 
-import path from "path";
 import { logger } from "../config/logger.js";
 import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ShopService } from "../services/shop.service.js";
 import { NotFoundError, UnauthorizedError } from "../utils/errors.js";
 import { UploadService } from "../modules/uploads/upload.service.js";
-import { getFullStorageUrl, validateFile } from "../utils/file-upload.js";
+import {
+  cleanPath,
+  getFullStorageUrl,
+  validateFile,
+} from "../utils/file-upload.js";
 import { LOGO_BUCKET } from "../config/storage.config.js";
 
 // Create seconday shop
@@ -21,7 +24,6 @@ export const createSecondShop = async (
   try {
     const { user } = req;
     const { password, ...shopData } = req.body;
-    console.log(shopData);
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const shopPayload = {
@@ -163,7 +165,10 @@ export const getShopSettings = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    const shop = { ...shopData , logoUrl :getFullStorageUrl(LOGO_BUCKET, shopData?.logoUrl as string)}
+    const shop = {
+      ...shopData,
+      logoUrl: getFullStorageUrl(LOGO_BUCKET, shopData?.logoUrl as string),
+    };
 
     if (!shop) return res.status(404).json({ message: "Boutique introuvable" });
 
@@ -223,14 +228,15 @@ export const uploadShopLogo = async (req: AuthRequest, res: Response) => {
   const file = req.file;
 
   validateFile(file);
-  const generatePath = `/logo-${Date.now()}.${file.mimetype}`;
+  const generatePath = cleanPath(file);
+
   const logoPath = await UploadService.uploadLogo(file, generatePath);
- 
+
   // Mettre à jour le logo en base
   prisma.shop
     .update({
       where: { id: req.user!.shopId },
-      data: { logoUrl:  logoPath.path },
+      data: { logoUrl: logoPath.path },
     })
     .then((shop) => {
       return res.status(200).json({
@@ -261,17 +267,16 @@ export const deleteShopLogo = async (req: AuthRequest, res: Response) => {
     );
 
     // Optionnel : Avertir si rien n'a été trouvé
-  if (!data || data.length === 0) {
-    logger.warn(`Aucun fichier trouvé à supprimer dans '${LOGO_BUCKET}' au chemin : ${path}`);
-  }
+    if (!data || data.length === 0) {
+      logger.warn(
+        `Aucun fichier trouvé à supprimer dans '${LOGO_BUCKET}' au chemin : ${shop.logoUrl}`,
+      );
+    }
 
-console.log(data)
-  
-
-    // await prisma.shop.update({
-    //   where: { id: shopId },
-    //   data: { logoUrl: null },
-    // });
+    await prisma.shop.update({
+      where: { id: shopId },
+      data: { logoUrl: null },
+    });
 
     return res.status(200).json({ message: "Logo supprimé" });
   } catch (error) {
