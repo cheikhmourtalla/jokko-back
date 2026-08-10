@@ -18,7 +18,7 @@ router.get("/:id/price", protect, authorizeRoles("ADMIN", "EMPLOYEE"), getSugges
 router.get("/:id", protect, authorizeRoles("ADMIN", "EMPLOYEE"), getProductById);
 router.post("/", protect, authorizeRoles("ADMIN"), upload.single("image"),createProduct);
 router.put("/:id", protect, authorizeRoles("ADMIN"),upload.single("image"),  updateProduct);
-router.delete("/:id", protect, authorizeRoles("ADMIN"), deleteProduct);
+router.delete("/:id", protect, authorizeRoles("ADMIN"),deleteProduct);
 
 
 // router.post(

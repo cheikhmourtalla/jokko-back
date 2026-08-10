@@ -138,7 +138,7 @@ export const createProduct = async (
       purchasePrice,
       salePrice,
       Number(alertThreshold) ,
-      imageUrl, // Passe l'URL ou le path généré par Supabase
+      imageUrl, 
       semiWholesalePrice,
       semiWholesaleMinQty,
       wholesalePrice,
@@ -153,71 +153,16 @@ export const createProduct = async (
   }
 };
 
-
-
-// export const createProduct = async (
-//   req: AuthRequest,
-//   res: Response,
-//   next: NextFunction,
-// ) => {
-//   try {
-//     const shopId = req.user!.shopId;
-//     const shopOwnerId = req.user!.ownerId;
-//     const {
-//       name,
-//       description,
-//       reference,
-//       categoryId,
-//       purchasePrice,
-//       salePrice,
-//       alertThreshold,
-//       imageUrl,
-//       semiWholesalePrice,
-//       semiWholesaleMinQty,
-//       wholesalePrice,
-//       wholesaleMinQty,
-//     } = req.body;
-
-//     if (!name || purchasePrice == null || salePrice == null) {
-//       return res.status(400).json({
-//         message: "Nom, prix d'achat et prix de vente sont obligatoires",
-//       });
-//     }
-
-//     //  create product
-//     const product = await ProductService.createProduct(
-//       shopOwnerId,
-//       shopId,
-//       name,
-//       description,
-//       reference,
-//       categoryId,
-//       purchasePrice,
-//       salePrice,
-//       alertThreshold,
-//       imageUrl,
-//       semiWholesalePrice,
-//       semiWholesaleMinQty,
-//       wholesalePrice,
-//       wholesaleMinQty,
-//     );
-
-//     return res
-//       .status(201)
-//       .json({ message: "Produit créé avec succès", product });
-//   } catch (e) {
-//     next(e);
-//   }
-// };
-
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
     const shopId = req.user!.shopId;
     const id = Number(req.params.id);
 
+    // 1. Vérification de l'existence du produit
     const existing = await prisma.product.findFirst({ where: { id, shopId } });
-    if (!existing)
+    if (!existing) {
       return res.status(404).json({ message: "Produit introuvable" });
+    }
 
     const {
       name,
@@ -234,13 +179,42 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       wholesaleMinQty,
     } = req.body;
 
+    let finalImageUrl = existing.imageUrl;
+
+    // 2. Gestion de l'image Supabase Storage
+    if (req.file) {
+      // CAS A : Un nouveau fichier est téléversé
+      // Supprimer l'ancienne image sur Supabase si elle existe
+      if (existing.imageUrl) {
+        await UploadService.deleteFile("products", existing.imageUrl);
+      }
+
+      // Upload de la nouvelle image
+      validateFile(req.file);
+      const filePath = cleanPath(req.file);
+      const uploadResult = await UploadService.uploadFile(
+        req.file,
+        filePath,
+        'product'
+      );
+
+  
+      finalImageUrl = uploadResult?.path ;
+    } else if (imageUrl === "" || imageUrl === null) {
+      // CAS B : L'utilisateur a explicitement retiré l'image
+      if (existing.imageUrl) {
+        await UploadService.deleteFile("products", existing.imageUrl);
+      }
+      finalImageUrl = null;
+    }
+
+    // 3. Mise à jour dans la base de données
     const updated = await prisma.product.update({
       where: { id },
       data: {
         name: name ?? existing.name,
-        description:
-          description !== undefined ? description : existing.description,
-        reference: reference !== undefined ? reference : existing.reference,
+        description: description !== undefined ? (description || null) : existing.description,
+        reference: reference !== undefined ? (reference || null) : existing.reference,
         categoryId:
           categoryId !== undefined
             ? categoryId
@@ -257,7 +231,7 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
           alertThreshold !== undefined
             ? Number(alertThreshold)
             : existing.alertThreshold,
-        imageUrl: imageUrl !== undefined ? imageUrl : existing.imageUrl,
+        imageUrl: finalImageUrl,
         semiWholesalePrice:
           semiWholesalePrice !== undefined
             ? semiWholesalePrice
@@ -286,15 +260,105 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       include: { category: true },
     });
 
-    return res
-      .status(200)
-      .json({ message: "Produit modifié avec succès", product: updated });
+    // 4. Formater la réponse avec le Mapper DTO (pour renvoyer l'URL publique)
+    const formattedProduct = mapProductToDto(updated, "products");
+
+    return res.status(200).json({
+      message: "Produit modifié avec succès",
+      product: formattedProduct,
+    });
   } catch (error) {
     return res
       .status(500)
       .json({ message: "Erreur modification produit", error });
   }
 };
+
+// export const updateProduct = async (req: AuthRequest, res: Response) => {
+//   try {
+//     const shopId = req.user!.shopId;
+//     const id = Number(req.params.id);
+
+//     const existing = await prisma.product.findFirst({ where: { id, shopId } });
+//     if (!existing)
+//       return res.status(404).json({ message: "Produit introuvable" });
+
+//     const {
+//       name,
+//       description,
+//       reference,
+//       categoryId,
+//       purchasePrice,
+//       salePrice,
+//       alertThreshold,
+//       imageUrl,
+//       semiWholesalePrice,
+//       semiWholesaleMinQty,
+//       wholesalePrice,
+//       wholesaleMinQty,
+//     } = req.body;
+
+//     const updated = await prisma.product.update({
+//       where: { id },
+//       data: {
+//         name: name ?? existing.name,
+//         description:
+//           description !== undefined ? description : existing.description,
+//         reference: reference !== undefined ? reference : existing.reference,
+//         categoryId:
+//           categoryId !== undefined
+//             ? categoryId
+//               ? Number(categoryId)
+//               : null
+//             : existing.categoryId,
+//         purchasePrice:
+//           purchasePrice !== undefined
+//             ? Number(purchasePrice)
+//             : existing.purchasePrice,
+//         salePrice:
+//           salePrice !== undefined ? Number(salePrice) : existing.salePrice,
+//         alertThreshold:
+//           alertThreshold !== undefined
+//             ? Number(alertThreshold)
+//             : existing.alertThreshold,
+//         imageUrl: imageUrl !== undefined ? imageUrl : existing.imageUrl,
+//         semiWholesalePrice:
+//           semiWholesalePrice !== undefined
+//             ? semiWholesalePrice
+//               ? Number(semiWholesalePrice)
+//               : null
+//             : existing.semiWholesalePrice,
+//         semiWholesaleMinQty:
+//           semiWholesaleMinQty !== undefined
+//             ? semiWholesaleMinQty
+//               ? Number(semiWholesaleMinQty)
+//               : null
+//             : existing.semiWholesaleMinQty,
+//         wholesalePrice:
+//           wholesalePrice !== undefined
+//             ? wholesalePrice
+//               ? Number(wholesalePrice)
+//               : null
+//             : existing.wholesalePrice,
+//         wholesaleMinQty:
+//           wholesaleMinQty !== undefined
+//             ? wholesaleMinQty
+//               ? Number(wholesaleMinQty)
+//               : null
+//             : existing.wholesaleMinQty,
+//       },
+//       include: { category: true },
+//     });
+
+//     return res
+//       .status(200)
+//       .json({ message: "Produit modifié avec succès", product: updated });
+//   } catch (error) {
+//     return res
+//       .status(500)
+//       .json({ message: "Erreur modification produit", error });
+//   }
+// };
 
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
