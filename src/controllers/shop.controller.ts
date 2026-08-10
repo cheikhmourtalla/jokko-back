@@ -7,7 +7,7 @@ import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ShopService } from "../services/shop.service.js";
 import { UnauthorizedError } from "../utils/errors.js";
-import { UploadService } from "../modules/uploads/upload.service.js";
+import {   UploadService } from "../modules/uploads/upload.service.js";
 import {
   cleanPath,
   getFullStorageUrl,
@@ -230,7 +230,7 @@ export const uploadShopLogo = async (req: AuthRequest, res: Response) => {
   validateFile(file);
   const generatePath = cleanPath(file);
 
-  const logoPath = await UploadService.uploadLogo(file, generatePath);
+  const logoPath = await UploadService.uploadFile(file, generatePath, "logo");
 
   // Mettre à jour le logo en base
   prisma.shop

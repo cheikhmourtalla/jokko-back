@@ -2,6 +2,15 @@ import { NextFunction, Response } from "express";
 import { prisma } from "../config/prisma.js";
 import { AuthRequest } from "../middlewares/auth.middleware.js";
 import { ProductService } from "./../services/product.service.js";
+import {  UploadService } from "../modules/uploads/upload.service.js";
+import { cleanPath, getFullStorageUrl, validateFile } from "../utils/file-upload.js";
+
+export const mapProductToDto = (product: any, bucketName: string = "products") => {
+  return {
+    ...product,
+    imageUrl: getFullStorageUrl(bucketName, product.imageUrl),
+  };
+};
 
 export const getProducts = async (req: AuthRequest, res: Response) => {
   try {
@@ -29,10 +38,19 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
       }),
     ]);
 
-    return res.status(200).json({
-      data: products,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    // ── Application du Mapper pour formater imageUrl ──
+    const formattedProducts = products.map((product) =>
+      mapProductToDto(product, "products")
+    );
 
+    return res.status(200).json({
+      data: formattedProducts,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
       totalProducts: total,
     });
   } catch (error) {
@@ -62,7 +80,6 @@ export const getProductById = async (req: AuthRequest, res: Response) => {
       .json({ message: "Erreur récupération produit", error });
   }
 };
-
 export const createProduct = async (
   req: AuthRequest,
   res: Response,
@@ -79,13 +96,12 @@ export const createProduct = async (
       purchasePrice,
       salePrice,
       alertThreshold,
-      imageUrl,
+      imageUrl: directImageUrl, // URL de secours si pas de fichier envoyé
       semiWholesalePrice,
       semiWholesaleMinQty,
       wholesalePrice,
       wholesaleMinQty,
     } = req.body;
-
 
     if (!name || purchasePrice == null || salePrice == null) {
       return res.status(400).json({
@@ -93,7 +109,25 @@ export const createProduct = async (
       });
     }
 
-    //  create product
+    let imageUrl = directImageUrl || null;
+
+    // 1. Traitement du fichier uploadé via Multer (si présent)
+    if (req.file) {
+      validateFile(req.file);
+      const filePath = cleanPath(req.file);
+      
+      // Upload vers Supabase Storage
+      const uploadResult = await UploadService.uploadFile(
+        req.file, 
+        filePath, 
+        "product"
+      );
+
+      // On récupère le chemin relatif retourné par Supabase (ex: uploadResult.path)
+      imageUrl = uploadResult?.path || uploadResult;
+    }
+
+    // 2. Création du produit avec le bon imageUrl
     const product = await ProductService.createProduct(
       shopOwnerId,
       shopId,
@@ -103,8 +137,8 @@ export const createProduct = async (
       categoryId,
       purchasePrice,
       salePrice,
-      alertThreshold,
-      imageUrl,
+      Number(alertThreshold) ,
+      imageUrl, // Passe l'URL ou le path généré par Supabase
       semiWholesalePrice,
       semiWholesaleMinQty,
       wholesalePrice,
@@ -118,6 +152,63 @@ export const createProduct = async (
     next(e);
   }
 };
+
+
+
+// export const createProduct = async (
+//   req: AuthRequest,
+//   res: Response,
+//   next: NextFunction,
+// ) => {
+//   try {
+//     const shopId = req.user!.shopId;
+//     const shopOwnerId = req.user!.ownerId;
+//     const {
+//       name,
+//       description,
+//       reference,
+//       categoryId,
+//       purchasePrice,
+//       salePrice,
+//       alertThreshold,
+//       imageUrl,
+//       semiWholesalePrice,
+//       semiWholesaleMinQty,
+//       wholesalePrice,
+//       wholesaleMinQty,
+//     } = req.body;
+
+//     if (!name || purchasePrice == null || salePrice == null) {
+//       return res.status(400).json({
+//         message: "Nom, prix d'achat et prix de vente sont obligatoires",
+//       });
+//     }
+
+//     //  create product
+//     const product = await ProductService.createProduct(
+//       shopOwnerId,
+//       shopId,
+//       name,
+//       description,
+//       reference,
+//       categoryId,
+//       purchasePrice,
+//       salePrice,
+//       alertThreshold,
+//       imageUrl,
+//       semiWholesalePrice,
+//       semiWholesaleMinQty,
+//       wholesalePrice,
+//       wholesaleMinQty,
+//     );
+
+//     return res
+//       .status(201)
+//       .json({ message: "Produit créé avec succès", product });
+//   } catch (e) {
+//     next(e);
+//   }
+// };
 
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   try {
@@ -342,3 +433,17 @@ export function computePrice(
   // Détail (par défaut)
   return { price: product.salePrice, tier: "detail" };
 }
+
+// upload image
+export const uploadProductImage = (req: AuthRequest, res: Response) => {
+  const file = req.file;
+  if (!file) {
+    return res.status(400).json({ message: "Aucun fichier reçu" });
+  }
+
+  return res.status(200).json({
+    message: "Image uploadée avec succès",
+    // imageUrl: generateUrl,
+    filename: file.filename,
+  });
+};

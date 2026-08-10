@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { env } from "./env-config";
 import multer from "multer";
 
-export const LOGO_BUCKET = "logo"
+export const LOGO_BUCKET = "logos"
 export const PRODUCT_BUCKET = "products"
 
 //  Supabase client

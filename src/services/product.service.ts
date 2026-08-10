@@ -1,5 +1,8 @@
 import { prisma } from "../config/prisma.js";
+import { upload } from "../config/storage.config.js";
+import { UploadService } from "../modules/uploads/upload.service.js";
 import { ForbiddenError } from "../utils/errors.js";
+import { cleanPath, validateFile } from "../utils/file-upload.js";
 import { PlanChecker } from "./plan-checker.service.js";
 
 export const ProductService = {
@@ -64,4 +67,6 @@ export const ProductService = {
 
     return result;
   },
+
+
 };
