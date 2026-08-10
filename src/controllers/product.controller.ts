@@ -274,91 +274,6 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// export const updateProduct = async (req: AuthRequest, res: Response) => {
-//   try {
-//     const shopId = req.user!.shopId;
-//     const id = Number(req.params.id);
-
-//     const existing = await prisma.product.findFirst({ where: { id, shopId } });
-//     if (!existing)
-//       return res.status(404).json({ message: "Produit introuvable" });
-
-//     const {
-//       name,
-//       description,
-//       reference,
-//       categoryId,
-//       purchasePrice,
-//       salePrice,
-//       alertThreshold,
-//       imageUrl,
-//       semiWholesalePrice,
-//       semiWholesaleMinQty,
-//       wholesalePrice,
-//       wholesaleMinQty,
-//     } = req.body;
-
-//     const updated = await prisma.product.update({
-//       where: { id },
-//       data: {
-//         name: name ?? existing.name,
-//         description:
-//           description !== undefined ? description : existing.description,
-//         reference: reference !== undefined ? reference : existing.reference,
-//         categoryId:
-//           categoryId !== undefined
-//             ? categoryId
-//               ? Number(categoryId)
-//               : null
-//             : existing.categoryId,
-//         purchasePrice:
-//           purchasePrice !== undefined
-//             ? Number(purchasePrice)
-//             : existing.purchasePrice,
-//         salePrice:
-//           salePrice !== undefined ? Number(salePrice) : existing.salePrice,
-//         alertThreshold:
-//           alertThreshold !== undefined
-//             ? Number(alertThreshold)
-//             : existing.alertThreshold,
-//         imageUrl: imageUrl !== undefined ? imageUrl : existing.imageUrl,
-//         semiWholesalePrice:
-//           semiWholesalePrice !== undefined
-//             ? semiWholesalePrice
-//               ? Number(semiWholesalePrice)
-//               : null
-//             : existing.semiWholesalePrice,
-//         semiWholesaleMinQty:
-//           semiWholesaleMinQty !== undefined
-//             ? semiWholesaleMinQty
-//               ? Number(semiWholesaleMinQty)
-//               : null
-//             : existing.semiWholesaleMinQty,
-//         wholesalePrice:
-//           wholesalePrice !== undefined
-//             ? wholesalePrice
-//               ? Number(wholesalePrice)
-//               : null
-//             : existing.wholesalePrice,
-//         wholesaleMinQty:
-//           wholesaleMinQty !== undefined
-//             ? wholesaleMinQty
-//               ? Number(wholesaleMinQty)
-//               : null
-//             : existing.wholesaleMinQty,
-//       },
-//       include: { category: true },
-//     });
-
-//     return res
-//       .status(200)
-//       .json({ message: "Produit modifié avec succès", product: updated });
-//   } catch (error) {
-//     return res
-//       .status(500)
-//       .json({ message: "Erreur modification produit", error });
-//   }
-// };
 
 export const deleteProduct = async (req: AuthRequest, res: Response) => {
   try {
@@ -511,3 +426,4 @@ export const uploadProductImage = (req: AuthRequest, res: Response) => {
     filename: file.filename,
   });
 };
+
