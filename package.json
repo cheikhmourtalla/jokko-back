@@ -19,7 +19,8 @@
     "db:reset": "dotenv -e .env.development.local prisma migrate reset",
     "deploy:local": "npx dotenv-cli -e .env.production.local -- npx prisma migrate deploy",
     "db:status": "npx dotenv-cli -e .env.production.local -- npx prisma migrate status",
-    "RUN ON PRODUCTION": "PRODUCTION SCRIPT"
+    "RUN ON PRODUCTION": "PRODUCTION SCRIPT",
+    "prod:build":"tsc -- npx prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
