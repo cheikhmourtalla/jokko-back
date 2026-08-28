@@ -11,7 +11,7 @@
     "build": "tsc",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "postinstall": " dotenv -e .env.development.local prisma generate",
-    "db:generate": " dotenv -e .env.development.local prisma generate",
+    "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "dotenv -e .env.development.local -- prisma migrate dev",
     "db:studio": "dotenv -e .env.development.local prisma studio",
