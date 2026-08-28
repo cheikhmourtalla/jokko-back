@@ -1,7 +1,9 @@
 generator client {
   provider            = "prisma-client"
   output              = "./generated/prisma" // adjust path as needed
-  importFileExtension = ""
+  moduleFormat           = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension    = "ts"
 }
 
 datasource db {
