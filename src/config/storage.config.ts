@@ -1,6 +1,6 @@
 // ---cut---
 import { createClient } from "@supabase/supabase-js";
-import { env } from "./env-config";
+import { env } from "./env-config.js";
 import multer from "multer";
 
 export const LOGO_BUCKET = "logos"
@@ -16,5 +16,4 @@ export const supabase = createClient(
 export const upload = multer({
   storage: multer.memoryStorage(),
 });
-
 

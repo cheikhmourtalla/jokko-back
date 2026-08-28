@@ -1,5 +1,5 @@
-import { BadRequestError } from "./errors";
-import { env } from "../config/env-config";
+import { BadRequestError } from "./errors.js";
+import { env } from "../config/env-config.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo
 export const SUPABASE_PUBLIC_BUCKETS_URL = env.storage.publicBucketsUrl;

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { SuperAdminShopController } from "./controllers/super-admin.controller";
+import { SuperAdminShopController } from "./controllers/super-admin.controller.js";
 
 const router = Router();
 
