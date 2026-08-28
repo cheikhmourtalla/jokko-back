@@ -19,7 +19,7 @@ export const env = {
   logLevel: data.LOG_LEVEL,
   db: {
     url: data.DATABASE_URL,
-    directUrl : data.DIRECT_URL
+    // directUrl : data.DIRECT_URL
   },
   secret: {
     jwt: data.JWT_SECRET as string,
@@ -44,3 +44,6 @@ export const env = {
   frontendUrl: data.FRONTEND_URL,
   mode: envMode,
 };
+
+
+// console.log(env)
