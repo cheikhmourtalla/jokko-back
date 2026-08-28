@@ -3,7 +3,6 @@ import express, { Request, Response } from "express";
 // import 'express-async-errors';
 import helmet from "helmet";
 import morgan from "morgan";
-import path from "path";
 import { env } from "./config/env-config.js";
 import { logger, morganStream } from "./config/logger.js";
 import { ErrorHandler } from "./middlewares/error-handler.middleware.js";
@@ -21,7 +20,6 @@ import stockRoutes from "./routes/stock.routes.js";
 import subscription from "./routes/subscription.routes.js";
 import superAdminRoutes from "./modules/super-admin/super-admin.routes.js";
 import supplierRoutes from "./routes/supplier.routes.js";
-import uploadRoutes from "./routes/upload.routes.js";
 import userRoutes from "./routes/user.routes.js";
 
 const app = express();
@@ -46,9 +44,6 @@ app.use(
   }),
 );
 
-// ── Servir les fichiers uploadés statiquement ────────────────
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
 app.get("/", (_req: Request, res: Response) => {
   res.json({ message: "Jokko Business API v1.0", status: "running" });
 });
@@ -65,7 +60,6 @@ app.use("/api/sales", saleRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/cash", cashRoutes);
 app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/upload", uploadRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/subscription", subscription);
@@ -80,6 +74,5 @@ app.use(ErrorHandler);
 
 app.listen(env.port, () => {
   logger.info(`✅ Jokko Business API démarrée sur ${env.server}:${env.port}`);
-  logger.info(`📁 Uploads servis sur ${env.server}:${env.port}/uploads/`);
   logger.info(`🌍 Environnement : ${env.mode}`);
 });
