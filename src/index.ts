@@ -25,11 +25,16 @@ import userRoutes from "./routes/user.routes.js";
 const app = express();
 // const PORT = Number(env.PORT) || 5000;
 
+ 
 app.use(express.json());
 app.use(
   cors({
-    origin: env.frontendUrl,
-    // origin: "*",
+     origin: [
+    'https://jokko-business.com',
+    'https://www.jokko-business.com',
+    'http://localhost:4200' // Pour vos tests en dev local
+  ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   }),
 );
